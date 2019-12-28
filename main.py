@@ -1,4 +1,4 @@
-from game import player
+from game import entity, player, resources, map
 import pygame
 import sys
 import os
@@ -8,11 +8,12 @@ DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 360
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+display_rect = (0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 # Timing variables
 TARGET_FPS = 60
 SECOND = 1000
-UPDATE_TIME = SECOND / TARGET_FPS
+UPDATE_TIME = SECOND / 60.0
 fps = 0
 frames = 0
 dt = 0
@@ -54,15 +55,25 @@ def game():
     player_obj = player.Player()
     player_obj.x = DISPLAY_WIDTH // 2
     player_obj.y = DISPLAY_HEIGHT // 2
+    level = map.Map()
     running = True
 
     while running:
         handle_input()
 
         player_obj.update(dt, input_queue, input_states)
+        for collider in level.room.colliders:
+            player_obj.check_collision(dt, collider)
 
         clear_display()
-        display.blit(player_obj.image, (player_obj.get_x(), player_obj.get_y()))
+
+        for tile in level.room.render_points:
+            tile_img = tile[0]
+            tile_x = tile[1] - player_obj.get_camera_x()
+            tile_y = tile[2] - player_obj.get_camera_y()
+            if rect_in_screen((tile_x, tile_y, 50, 50)):
+                display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+        display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
 
         if debug_mode or INDEV_BUILD:
             render_fps()
@@ -107,6 +118,14 @@ def handle_input():
             elif event.key == pygame.K_a:
                 input_queue.append(("player left", False))
                 input_states["player left"] = False
+
+
+def rect_in_screen(rect):
+    center_x = DISPLAY_WIDTH // 2
+    other_center_x = rect[0] + (rect[2] // 2)
+    center_y = DISPLAY_HEIGHT // 2
+    other_center_y = rect[1] + (rect[3] // 2)
+    return abs(center_x - other_center_x) * 2 < rect[2] + DISPLAY_WIDTH and abs(center_y - other_center_y) * 2 < rect[3] + DISPLAY_HEIGHT
 
 
 def clear_display():
