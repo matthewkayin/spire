@@ -8,6 +8,7 @@ DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 360
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+SCALE = SCREEN_WIDTH / DISPLAY_WIDTH
 display_rect = (0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 # Timing variables
@@ -38,6 +39,8 @@ clock = pygame.time.Clock()
 # Input variables
 input_queue = []
 input_states = {"player left": False, "player right": False, "player up": False, "player down": False}
+mouse_x = 0
+mouse_y = 0
 
 # Color variables
 BLACK = (0, 0, 0)
@@ -52,7 +55,7 @@ font_small = pygame.font.SysFont("Serif", 11)
 
 
 def game():
-    player_obj = player.Player()
+    player_obj = player.Player(DISPLAY_WIDTH, DISPLAY_HEIGHT)
     player_obj.x = DISPLAY_WIDTH // 2
     player_obj.y = DISPLAY_HEIGHT // 2
     level = map.Map()
@@ -61,7 +64,7 @@ def game():
     while running:
         handle_input()
 
-        player_obj.update(dt, input_queue, input_states)
+        player_obj.update(dt, input_queue, input_states, mouse_x, mouse_y)
         for collider in level.room.colliders:
             player_obj.check_collision(dt, collider)
 
@@ -86,7 +89,7 @@ def game():
 
 
 def handle_input():
-    global input_states
+    global input_states, mouse_x, mouse_y
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -118,6 +121,10 @@ def handle_input():
             elif event.key == pygame.K_a:
                 input_queue.append(("player left", False))
                 input_states["player left"] = False
+        elif event.type == pygame.MOUSEMOTION:
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_x = int(mouse_pos[0] / SCALE)
+            mouse_y = int(mouse_pos[1] / SCALE)
 
 
 def rect_in_screen(rect):

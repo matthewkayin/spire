@@ -6,14 +6,20 @@ class Player(entity.Entity):
     Player class
     """
 
-    def __init__(self):
+    def __init__(self, DISPLAY_WIDTH, DISPLAY_HEIGHT):
         super(Player, self).__init__("player-idle", True)
 
+        self.SCREEN_CENTER_X = DISPLAY_WIDTH // 2
+        self.SCREEN_CENTER_Y = DISPLAY_HEIGHT // 2
+        self.CAMERA_OFFSET_X = (self.width // 2) - self.SCREEN_CENTER_X
+        self.CAMERA_OFFSET_Y = (self.height // 2) - self.SCREEN_CENTER_Y
         self.camera_x = 0
         self.camera_y = 0
+        self.CAMERA_SENSITIVITY = 0.2
+
         self.SPEED = 2
 
-    def update(self, dt, input_queue, input_states):
+    def update(self, dt, input_queue, input_states, mouse_x, mouse_y):
         while len(input_queue) != 0:
             event = input_queue.pop()
             if event == ("player up", True):
@@ -45,8 +51,8 @@ class Player(entity.Entity):
                 else:
                     self.vx = 0
 
-        self.camera_x += self.vx * dt
-        self.camera_y += self.vy * dt
+        self.camera_x = self.x + self.CAMERA_OFFSET_X + ((mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
+        self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
         super(Player, self).update(dt)
 
     def check_collision(self, dt, collider):
