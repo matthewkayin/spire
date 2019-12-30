@@ -23,7 +23,7 @@ before_sec = 0
 
 # Handle cli flags
 debug_mode = "--debug" in sys.argv
-INDEV_BUILD = True
+show_fps = "--showfps" in sys.argv  # This is for if you want to see fps even in no-debug
 
 # Init pygame
 os.environ["SDL_VIDEO_CENTERED"] = '1'
@@ -82,7 +82,10 @@ def game():
                     display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
 
-        if debug_mode or INDEV_BUILD:
+        for i in range(0, player_obj.health):
+            display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
+
+        if debug_mode or show_fps:
             render_fps()
 
         flip_display()

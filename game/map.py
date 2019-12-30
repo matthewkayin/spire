@@ -30,8 +30,6 @@ class Room():
             self.generate_two_pillars(exits)
 
         self.offset_coords(base_x, base_y)
-        print("BASE = " + str(base_x) + ", " + str(base_y))
-        print(self.colliders)
 
     def get_rect(self):
         return (self.base_x, self.base_y, self.width, self.height)

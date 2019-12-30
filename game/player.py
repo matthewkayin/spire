@@ -1,4 +1,4 @@
-from . import entity
+from . import entity, resources
 
 
 class Player(entity.Entity):
@@ -9,6 +9,8 @@ class Player(entity.Entity):
     def __init__(self, DISPLAY_WIDTH, DISPLAY_HEIGHT):
         super(Player, self).__init__("player-idle", True)
 
+        resources.load_image("heart", True)
+
         self.SCREEN_CENTER_X = DISPLAY_WIDTH // 2
         self.SCREEN_CENTER_Y = DISPLAY_HEIGHT // 2
         self.CAMERA_OFFSET_X = (self.width // 2) - self.SCREEN_CENTER_X
@@ -18,6 +20,8 @@ class Player(entity.Entity):
         self.CAMERA_SENSITIVITY = 0.2
 
         self.SPEED = 2
+
+        self.health = 3
 
     def update(self, dt, input_queue, input_states, mouse_x, mouse_y):
         while len(input_queue) != 0:
@@ -91,3 +95,6 @@ class Player(entity.Entity):
 
     def get_camera_y(self):
         return int(round(self.camera_y))
+
+    def get_heart_image(self):
+        return resources.get_image("heart")
