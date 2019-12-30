@@ -1,4 +1,4 @@
-from game import entity, player, resources, map
+from game import player, resources, map
 import pygame
 import sys
 import os
@@ -65,17 +65,21 @@ def game():
         handle_input()
 
         player_obj.update(dt, input_queue, input_states, mouse_x, mouse_y)
-        for collider in level.room.colliders:
-            player_obj.check_collision(dt, collider)
+        level.update(player_obj)
+        for room in level.current_rooms:
+            for collider in room.colliders:
+                player_obj.check_collision(dt, collider)
+        player_obj.update_camera(mouse_x, mouse_y)
 
         clear_display()
 
-        for tile in level.room.render_points:
-            tile_img = tile[0]
-            tile_x = tile[1] - player_obj.get_camera_x()
-            tile_y = tile[2] - player_obj.get_camera_y()
-            if rect_in_screen((tile_x, tile_y, 50, 50)):
-                display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+        for room in level.rooms:
+            for tile in room.render_points:
+                tile_img = tile[0]
+                tile_x = tile[1] - player_obj.get_camera_x()
+                tile_y = tile[2] - player_obj.get_camera_y()
+                if rect_in_screen((tile_x, tile_y, 50, 50)):
+                    display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
 
         if debug_mode or INDEV_BUILD:

@@ -51,9 +51,11 @@ class Player(entity.Entity):
                 else:
                     self.vx = 0
 
+        super(Player, self).update(dt)
+
+    def update_camera(self, mouse_x, mouse_y):
         self.camera_x = self.x + self.CAMERA_OFFSET_X + ((mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
         self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
-        super(Player, self).update(dt)
 
     def check_collision(self, dt, collider):
         if self.collides(collider):
