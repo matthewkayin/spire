@@ -69,6 +69,11 @@ def game():
         for room in level.current_rooms:
             for collider in room.colliders:
                 player_obj.check_collision(dt, collider)
+            for enemy in room.enemies:
+                enemy.update(dt, player_obj.get_rect())
+                if enemy.deal_damage:
+                    if player_obj.collides(enemy.hurtbox):
+                        player_obj.health -= enemy.POWER
         player_obj.update_camera(mouse_x, mouse_y)
 
         clear_display()
@@ -80,6 +85,14 @@ def game():
                 tile_y = tile[2] - player_obj.get_camera_y()
                 if rect_in_screen((tile_x, tile_y, 50, 50)):
                     display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+            for enemy in room.enemies:
+                enemy_x = enemy.get_x() - player_obj.get_camera_x()
+                enemy_y = enemy.get_y() - player_obj.get_camera_y()
+                if rect_in_screen((enemy_x, enemy_y, enemy.width, enemy.height)):
+                    if enemy.attacking:
+                        pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
+                    else:
+                        display.blit(enemy.get_image(), (enemy_x, enemy_y))
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
 
         for i in range(0, player_obj.health):

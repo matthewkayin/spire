@@ -1,9 +1,13 @@
+from . import enemies
+
+
 class Map():
     def __init__(self):
         self.current_rooms = []
         self.rooms = []
         self.rooms.append(Room(0, 0, "empty", [0]))
         self.rooms.append(Room(0, -600, "empty", [2]))
+        self.rooms[0].enemies.append(enemies.Enemy(500, 10))
         self.current_room = 0
         self.previous_room = -1
 
@@ -23,6 +27,7 @@ class Room():
         self.base_y = base_y
         self.width = 12 * 50
         self.height = 12 * 50
+        self.enemies = []
 
         if generator == "empty":
             self.generate_empty(exits)

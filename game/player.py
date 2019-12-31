@@ -1,4 +1,4 @@
-from . import entity, resources
+from . import entity, resources, util
 
 
 class Player(entity.Entity):
@@ -19,49 +19,73 @@ class Player(entity.Entity):
         self.camera_y = 0
         self.CAMERA_SENSITIVITY = 0.2
 
+        self.dx = 0
+        self.dy = 0
         self.SPEED = 2
 
         self.health = 3
 
     def update(self, dt, input_queue, input_states, mouse_x, mouse_y):
+        update_velocity = False
+
+        # Handle input
         while len(input_queue) != 0:
             event = input_queue.pop()
             if event == ("player up", True):
-                self.vy = -self.SPEED
+                self.dy = -1
+                update_velocity = True
             elif event == ("player down", True):
-                self.vy = self.SPEED
+                self.dy = 1
+                update_velocity = True
             elif event == ("player right", True):
-                self.vx = self.SPEED
+                self.dx = 1
+                update_velocity = True
             elif event == ("player left", True):
-                self.vx = -self.SPEED
+                self.dx = -1
+                update_velocity = True
             elif event == ("player up", False):
                 if input_states["player down"]:
-                    self.vy = self.SPEED
+                    self.dy = 1
                 else:
-                    self.vy = 0
+                    self.dy = 0
+                update_velocity = True
             elif event == ("player down", False):
                 if input_states["player up"]:
-                    self.vy = -self.SPEED
+                    self.dy = -1
                 else:
-                    self.vy = 0
+                    self.dy = 0
+                update_velocity = True
             elif event == ("player right", False):
                 if input_states["player left"]:
-                    self.vx = -self.SPEED
+                    self.dx = -1
                 else:
-                    self.vx = 0
+                    self.dx = 0
+                update_velocity = True
             elif event == ("player left", False):
                 if input_states["player right"]:
-                    self.vx = self.SPEED
+                    self.dx = 1
                 else:
-                    self.vx = 0
+                    self.dx = 0
+                update_velocity = True
+
+        # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
+        if update_velocity:
+            # player vx/vy is direction (dx/dy) scaled up to SPEED
+            self.vx, self.vy = util.scale_vector((self.dx, self.dy), self.SPEED)
 
         super(Player, self).update(dt)
 
     def update_camera(self, mouse_x, mouse_y):
+        """
+        Sets the camera position based on the player position and offset with the mouse relative to the screen center
+        """
         self.camera_x = self.x + self.CAMERA_OFFSET_X + ((mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
         self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
 
     def check_collision(self, dt, collider):
+        """
+        This checks for a collision with a wall-like object and handles it if necessary
+        """
         if self.collides(collider):
             x_step = self.vx * dt
             y_step = self.vy * dt
