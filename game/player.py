@@ -1,4 +1,4 @@
-from . import entity, resources, util
+from . import entity, resources, util, spells
 
 
 class Player(entity.Entity):
@@ -10,6 +10,7 @@ class Player(entity.Entity):
         super(Player, self).__init__("player-idle", True)
 
         resources.load_image("heart", True)
+        spells.load_spell_images()
 
         self.SCREEN_CENTER_X = DISPLAY_WIDTH // 2
         self.SCREEN_CENTER_Y = DISPLAY_HEIGHT // 2
@@ -24,6 +25,9 @@ class Player(entity.Entity):
         self.SPEED = 2
 
         self.health = 3
+
+        self.active_spells = []
+        self.pending_spell = None
 
     def update(self, dt, input_queue, input_states, mouse_x, mouse_y):
         update_velocity = False
@@ -67,11 +71,30 @@ class Player(entity.Entity):
                 else:
                     self.dx = 0
                 update_velocity = True
+            elif event == ("left click", True):
+                self.begin_spellcast("fire", mouse_x + self.camera_x, mouse_y + self.camera_y)
 
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
         if update_velocity:
             # player vx/vy is direction (dx/dy) scaled up to SPEED
             self.vx, self.vy = util.scale_vector((self.dx, self.dy), self.SPEED)
+
+        if self.pending_spell is not None:
+            if self.vx != 0 or self.vy != 0:
+                self.cancel_spellcast()
+            else:
+                if self.pending_spell.state == spells.Spell.CAST_READY:
+                    self.pending_spell.cast()
+                    self.active_spells.append(self.pending_spell)
+                    self.pending_spell = None
+                else:
+                    # It's important to put the update in the else otherwise we will update the spell twice in one update
+                    self.pending_spell.update(dt)
+
+        for spell in self.active_spells:
+            spell.update(dt)
+        # Remove ended spells from our active spell list
+        self.active_spells = [spell for spell in self.active_spells if spell.state != spells.Spell.ENDED]
 
         super(Player, self).update(dt)
 
@@ -122,3 +145,18 @@ class Player(entity.Entity):
 
     def get_heart_image(self):
         return resources.get_image("heart")
+
+    def begin_spellcast(self, shortname, target_x, target_y):
+        if self.pending_spell is not None:
+            self.cancel_spellcast()
+        if shortname == "fire":
+            self.pending_spell = spells.Fire(self.x + 5, self.y, target_x, target_y)
+
+    def cancel_spellcast(self):
+        self.pending_spell = None
+
+    def get_chargebar_percentage(self):
+        if self.pending_spell is None:
+            return 0
+        else:
+            return (self.pending_spell.charge_timer / self.pending_spell.CHARGE_TIME)

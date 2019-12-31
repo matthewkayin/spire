@@ -77,6 +77,11 @@ def game():
                 if enemy.deal_damage:
                     if player_obj.collides(enemy.hurtbox):
                         player_obj.health -= enemy.POWER
+                for spell in player_obj.active_spells:
+                    if spell.deal_damage:
+                        if enemy.collides(spell.get_rect()):
+                            enemy.health -= spell.DAMAGE
+            room.enemies = [enemy for enemy in room.enemies if enemy.health >= 0]
         player_obj.update_camera(mouse_x, mouse_y)
 
         clear_display()
@@ -91,6 +96,11 @@ def game():
                         display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
                     else:
                         display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
+        for spell in player_obj.active_spells:
+            spell_x = spell.get_x() - player_obj.get_camera_x()
+            spell_y = spell.get_y() - player_obj.get_camera_y()
+            display.blit(spell.get_image(), (spell_x, spell_y))
+        for room in level.rooms:
             for enemy in room.enemies:
                 enemy_x = enemy.get_x() - player_obj.get_camera_x()
                 enemy_y = enemy.get_y() - player_obj.get_camera_y()
@@ -100,6 +110,9 @@ def game():
                     else:
                         display.blit(enemy.get_image(), (enemy_x, enemy_y))
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
+        if player_obj.get_chargebar_percentage() > 0:
+            chargebar_rect = (player_obj.get_x() - player_obj.get_camera_x() - 5, player_obj.get_y() - player_obj.get_camera_y() - 5, int(round(30 * player_obj.get_chargebar_percentage())), 5)
+            pygame.draw.rect(display, YELLOW, chargebar_rect, False)
 
         for i in range(0, player_obj.health):
             display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
@@ -147,6 +160,9 @@ def handle_input():
             elif event.key == pygame.K_a:
                 input_queue.append(("player left", False))
                 input_states["player left"] = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == pygame.BUTTON_LEFT:
+                input_queue.append(("left click", True))
         elif event.type == pygame.MOUSEMOTION:
             mouse_pos = pygame.mouse.get_pos()
             mouse_x = int(mouse_pos[0] / SCALE)

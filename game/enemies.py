@@ -27,6 +27,8 @@ class Enemy(entity.Entity):
         self.hurtbox = None
         self.POWER = 1
 
+        self.health = 1
+
     def update(self, dt, player_rect):
         # If we finished an attack last turn, we want to reset these variables so the hit happens only once
         if self.deal_damage:
