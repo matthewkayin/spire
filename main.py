@@ -58,7 +58,10 @@ def game():
     player_obj = player.Player(DISPLAY_WIDTH, DISPLAY_HEIGHT)
     player_obj.x = DISPLAY_WIDTH // 2
     player_obj.y = DISPLAY_HEIGHT // 2
+
     level = map.Map()
+    resources.load_tileset("tileset")
+
     running = True
 
     while running:
@@ -84,7 +87,10 @@ def game():
                 tile_x = tile[1] - player_obj.get_camera_x()
                 tile_y = tile[2] - player_obj.get_camera_y()
                 if rect_in_screen((tile_x, tile_y, 50, 50)):
-                    display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+                    if isinstance(tile_img, str):
+                        display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+                    else:
+                        display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
             for enemy in room.enemies:
                 enemy_x = enemy.get_x() - player_obj.get_camera_x()
                 enemy_y = enemy.get_y() - player_obj.get_camera_y()
