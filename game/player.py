@@ -1,3 +1,4 @@
+import math
 from . import entity, resources, util, spells
 
 
@@ -29,81 +30,112 @@ class Player(entity.Entity):
         self.active_spells = []
         self.pending_spell = None
 
-    def update(self, dt, input_queue, input_states, mouse_x, mouse_y):
-        update_velocity = False
+        self.inventory = {}
+        self.add_item("spellbook-fire", 3)
+        self.add_item("spellbook-lightning")
 
-        # Handle input
+        # UI state constants
+        self.NONE = 0
+        self.SPELLWHEEL = 1
+        self.CHOOSE_SPELL = 0
+        self.AIM_SPELL = 1
+        self.ui_state = self.NONE
+        self.ui_substate = 0
+
+    def handle_input(self, input_queue, input_states, mouse_x, mouse_y):
+        self.mouse_x = mouse_x
+        self.mouse_y = mouse_y
+        self.update_velocity = False
+
         while len(input_queue) != 0:
             event = input_queue.pop()
             if event == ("player up", True):
                 self.dy = -1
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player down", True):
                 self.dy = 1
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player right", True):
                 self.dx = 1
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player left", True):
                 self.dx = -1
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player up", False):
                 if input_states["player down"]:
                     self.dy = 1
                 else:
                     self.dy = 0
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player down", False):
                 if input_states["player up"]:
                     self.dy = -1
                 else:
                     self.dy = 0
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player right", False):
                 if input_states["player left"]:
                     self.dx = -1
                 else:
                     self.dx = 0
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("player left", False):
                 if input_states["player right"]:
                     self.dx = 1
                 else:
                     self.dx = 0
-                update_velocity = True
+                self.update_velocity = True
             elif event == ("left click", True):
-                self.begin_spellcast("fire", mouse_x + self.camera_x, mouse_y + self.camera_y)
+                if self.ui_state == self.SPELLWHEEL:
+                    if self.ui_substate == self.CHOOSE_SPELL:
+                        for item in self.spellcircle_items:
+                            if util.point_in_rect((self.mouse_x, self.mouse_y), item[2]):
+                                self.ui_substate = self.AIM_SPELL
+                                self.spell_to_cast = item[0][item[0].index("-") + 1:]
+                    elif self.ui_substate == self.AIM_SPELL:
+                        self.begin_spellcast(self.spell_to_cast, mouse_x + self.camera_x, mouse_y + self.camera_y)
+                        self.ui_state = self.NONE
+            elif event == ("spellwheel", True):
+                self.toggle_spellwheel()
 
+    def update(self, dt):
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
-        if update_velocity:
+        if self.update_velocity:
             # player vx/vy is direction (dx/dy) scaled up to SPEED
             self.vx, self.vy = util.scale_vector((self.dx, self.dy), self.SPEED)
 
-        if self.pending_spell is not None:
-            if self.vx != 0 or self.vy != 0:
-                self.cancel_spellcast()
-            else:
-                if self.pending_spell.state == spells.Spell.CAST_READY:
-                    self.pending_spell.cast()
-                    self.active_spells.append(self.pending_spell)
-                    self.pending_spell = None
+        if self.ui_state == self.NONE:
+
+            if self.pending_spell is not None:
+                if self.vx != 0 or self.vy != 0:
+                    self.cancel_spellcast()
                 else:
-                    # It's important to put the update in the else otherwise we will update the spell twice in one update
-                    self.pending_spell.update(dt)
+                    if self.pending_spell.state == spells.Spell.CAST_READY:
+                        self.pending_spell.cast()
+                        self.active_spells.append(self.pending_spell)
+                        self.pending_spell = None
+                    else:
+                        # It's important to put the update in the else otherwise we will update the spell twice in one update
+                        self.pending_spell.update(dt)
 
-        for spell in self.active_spells:
-            spell.update(dt)
-        # Remove ended spells from our active spell list
-        self.active_spells = [spell for spell in self.active_spells if spell.state != spells.Spell.ENDED]
+            for spell in self.active_spells:
+                spell.update(dt)
+            # Remove ended spells from our active spell list
+            self.active_spells = [spell for spell in self.active_spells if spell.state != spells.Spell.ENDED]
 
-        super(Player, self).update(dt)
+            super(Player, self).update(dt)
+        elif self.ui_state == self.SPELLWHEEL:
+            if self.fade_alpha < 100:
+                self.fade_alpha += dt * 10
+                if self.fade_alpha > 100:
+                    self.fade_alpha = 100
 
-    def update_camera(self, mouse_x, mouse_y):
+    def update_camera(self):
         """
         Sets the camera position based on the player position and offset with the mouse relative to the screen center
         """
-        self.camera_x = self.x + self.CAMERA_OFFSET_X + ((mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
-        self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
+        self.camera_x = self.x + self.CAMERA_OFFSET_X + ((self.mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
+        self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((self.mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
 
     def check_collision(self, dt, collider):
         """
@@ -160,3 +192,54 @@ class Player(entity.Entity):
             return 0
         else:
             return (self.pending_spell.charge_timer / self.pending_spell.CHARGE_TIME)
+
+    def toggle_spellwheel(self):
+        if self.ui_state == self.NONE:
+            self.ui_state = self.SPELLWHEEL
+            self.ui_substate = self.CHOOSE_SPELL
+            self.fade_alpha = 0
+            self.make_spellcircle_items()
+        elif self.ui_state == self.SPELLWHEEL:
+            self.ui_state = self.NONE
+
+    def get_spellcircle_coords(self, degree):
+        ITEM_SIZE = 36
+
+        y_offset = int(round(125 * math.sin(math.radians(degree))))
+        x_offset = int(round(125 * math.cos(math.radians(degree))))
+
+        return (self.SCREEN_CENTER_X - x_offset - (ITEM_SIZE // 2), self.SCREEN_CENTER_Y - y_offset - (ITEM_SIZE // 2), ITEM_SIZE, ITEM_SIZE)
+
+    def make_spellcircle_items(self):
+        self.spellcircle_items = []
+
+        castable_spells = []
+        for item in self.inventory.keys():
+            if item.startswith("spellbook-"):
+                castable_spells.append((item, self.inventory[item]))
+
+        if len(castable_spells) == 0:
+            return
+
+        degree_padding = 360 / len(castable_spells)
+        for i in range(0, len(castable_spells)):
+            entry = []
+            entry.append(castable_spells[i][0])
+            entry.append(castable_spells[i][1])
+            entry.append(self.get_spellcircle_coords(90 + (i * degree_padding)))
+            self.spellcircle_items.append(entry)
+
+    def add_item(self, shortname, quantity=1):
+        if shortname in self.inventory.keys():
+            self.inventory[shortname] += quantity
+        else:
+            self.inventory[shortname] = quantity
+
+    def remove_item(self, shortname, quantity=1):
+        if shortname not in self.inventory.keys():
+            print("Error! Tried to remove item of which player has none")
+            return
+
+        self.inventory[shortname] -= quantity
+        if self.inventory[shortname] <= 0:
+            self.inventory.pop(shortname)

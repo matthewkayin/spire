@@ -1,4 +1,4 @@
-from . import resources
+from . import resources, util
 
 
 class Entity():
@@ -31,11 +31,7 @@ class Entity():
         return (self.x, self.y, self.width, self.height)
 
     def collides(self, other):
-        center_x = self.x + (self.width // 2)
-        other_center_x = other[0] + (other[2] // 2)
-        center_y = self.y + (self.height // 2)
-        other_center_y = other[1] + (other[3] // 2)
-        return abs(center_x - other_center_x) * 2 < other[2] + self.width and abs(center_y - other_center_y) * 2 < other[3] + self.height
+        return util.rects_collide(self.get_rect(), other)
 
     def get_image(self):
         return resources.get_image(self.image)

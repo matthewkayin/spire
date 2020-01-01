@@ -66,26 +66,37 @@ def game():
 
     while running:
         handle_input()
+        player_obj.handle_input(input_queue, input_states, mouse_x, mouse_y)
 
-        player_obj.update(dt, input_queue, input_states, mouse_x, mouse_y)
-        level.update(player_obj)
-        for room in level.current_rooms:
-            for collider in room.colliders:
-                player_obj.check_collision(dt, collider)
-            for enemy in room.enemies:
-                enemy.update(dt, player_obj.get_rect())
-                if enemy.deal_damage:
-                    if player_obj.collides(enemy.hurtbox):
-                        player_obj.health -= enemy.POWER
-                for spell in player_obj.active_spells:
-                    if spell.deal_damage:
-                        if enemy.collides(spell.get_rect()):
-                            enemy.health -= spell.DAMAGE
-            room.enemies = [enemy for enemy in room.enemies if enemy.health >= 0]
-        player_obj.update_camera(mouse_x, mouse_y)
+        """
+        BEGIN UPDATING
+        """
+        player_obj.update(dt)
+        if player_obj.ui_state == player_obj.NONE:
+            level.update(player_obj)
+            for room in level.current_rooms:
+                for collider in room.colliders:
+                    player_obj.check_collision(dt, collider)
+                for enemy in room.enemies:
+                    enemy.update(dt, player_obj.get_rect())
+                    if enemy.deal_damage:
+                        if player_obj.collides(enemy.hurtbox):
+                            player_obj.health -= enemy.POWER
+                    for spell in player_obj.active_spells:
+                        if spell.deal_damage:
+                            if enemy.collides(spell.get_rect()):
+                                enemy.health -= spell.DAMAGE
+                room.enemies = [enemy for enemy in room.enemies if enemy.health >= 0]
+            player_obj.update_camera()
 
+        """
+        BEGIN RENDERING
+        """
         clear_display()
 
+        """
+        RENDER ROOMS
+        """
         for room in level.rooms:
             for tile in room.render_points:
                 tile_img = tile[0]
@@ -96,10 +107,16 @@ def game():
                         display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
                     else:
                         display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
+        """
+        RENDER SPELLS
+        """
         for spell in player_obj.active_spells:
             spell_x = spell.get_x() - player_obj.get_camera_x()
             spell_y = spell.get_y() - player_obj.get_camera_y()
             display.blit(spell.get_image(), (spell_x, spell_y))
+        """
+        RENDER ENEMIES
+        """
         for room in level.rooms:
             for enemy in room.enemies:
                 enemy_x = enemy.get_x() - player_obj.get_camera_x()
@@ -109,6 +126,9 @@ def game():
                         pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
                     else:
                         display.blit(enemy.get_image(), (enemy_x, enemy_y))
+        """
+        RENDER PLAYER
+        """
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
         if player_obj.get_chargebar_percentage() > 0:
             chargebar_rect = (player_obj.get_x() - player_obj.get_camera_x() - 5, player_obj.get_y() - player_obj.get_camera_y() - 5, int(round(30 * player_obj.get_chargebar_percentage())), 5)
@@ -116,6 +136,21 @@ def game():
 
         for i in range(0, player_obj.health):
             display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
+
+        """
+        RENDER SPELLWHEEL UI
+        """
+        if player_obj.ui_state == player_obj.SPELLWHEEL and player_obj.ui_substate == player_obj.CHOOSE_SPELL:
+            fade_surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.SRCALPHA)
+            fade_surface.fill((0, 0, 0, player_obj.fade_alpha))
+            display.blit(fade_surface, (0, 0))
+
+            if player_obj.fade_alpha == 100:
+                pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
+                for item in player_obj.spellcircle_items:
+                    pygame.draw.rect(display, RED, item[2], False)
+                    count_surface = font_small.render(str(item[1]), False, BLUE)
+                    display.blit(count_surface, ((item[2][0] + int(item[2][2] * 0.8), item[2][1] + int(item[2][3] * 0.8))))
 
         if debug_mode or show_fps:
             render_fps()
@@ -147,6 +182,8 @@ def handle_input():
             elif event.key == pygame.K_a:
                 input_queue.append(("player left", True))
                 input_states["player left"] = True
+            elif event.key == pygame.K_SPACE:
+                input_queue.append(("spellwheel", True))
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 input_queue.append(("player up", False))
