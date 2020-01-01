@@ -111,6 +111,7 @@ class Player(entity.Entity):
                     self.cancel_spellcast()
                 else:
                     if self.pending_spell.state == spells.Spell.CAST_READY:
+                        self.remove_item("spellbook-" + self.spell_to_cast)
                         self.pending_spell.cast()
                         self.active_spells.append(self.pending_spell)
                         self.pending_spell = None
