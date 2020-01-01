@@ -40,7 +40,7 @@ class Room():
         return (self.base_x, self.base_y, self.width, self.height)
 
     def create_empty_one(self):
-        render_map = [[7, 3,13,13,14,-1,-1,12,13,13, 5, 7],
+        render_map = [[3,13,13,13,14,-1,-1,12,13,13,13, 5],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
@@ -53,9 +53,9 @@ class Room():
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [15,16,16,16,16,16,16,16,16,16,16,17]]
 
-        self.colliders.append((0, 0, 250, 50))
-        self.colliders.append((350, 0, 250, 50))
-        self.colliders.append((0, 550, 600, 50))
+        self.colliders.append((0, 0, 250, 25))
+        self.colliders.append((350, 0, 250, 25))
+        self.colliders.append((0, 565, 600, 35))
         self.colliders.append((0, 50, 50, 500))
         self.colliders.append((550, 50, 50, 500))
 
@@ -67,7 +67,7 @@ class Room():
                     self.render_points.append(("floor", x * 50, y * 50))
 
     def create_empty_two(self):
-        render_map = [[7, 3,13,13,13,13,13,13,13,13, 5, 7],
+        render_map = [[3,13,13,13,13,13,13,13,13,13,13, 5],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
@@ -80,9 +80,9 @@ class Room():
                       [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
                       [15,16,16,16,2,-1,-1,0,16,16,16,17]]
 
-        self.colliders.append((0, 0, 600, 50))
-        self.colliders.append((0, 550, 250, 50))
-        self.colliders.append((350, 550, 250, 50))
+        self.colliders.append((0, 0, 600, 25))
+        self.colliders.append((0, 565, 250, 35))
+        self.colliders.append((350, 565, 250, 35))
         self.colliders.append((0, 50, 50, 500))
         self.colliders.append((550, 50, 50, 500))
 

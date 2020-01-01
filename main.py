@@ -123,7 +123,8 @@ def game():
                     if isinstance(tile_img, str):
                         display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
                     else:
-                        display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
+                        if tile_img[1] != 16:
+                            display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
         """
         RENDER SPELLS
         """
@@ -150,6 +151,16 @@ def game():
         if player_obj.get_chargebar_percentage() > 0:
             chargebar_rect = (player_obj.get_x() - player_obj.get_camera_x() - 5, player_obj.get_y() - player_obj.get_camera_y() - 5, int(round(30 * player_obj.get_chargebar_percentage())), 5)
             pygame.draw.rect(display, YELLOW, chargebar_rect, False)
+        for room in level.rooms:
+            for tile in room.render_points:
+                tile_img = tile[0]
+                tile_img = tile[0]
+                tile_x = tile[1] - player_obj.get_camera_x()
+                tile_y = tile[2] - player_obj.get_camera_y()
+                if rect_in_screen((tile_x, tile_y, 50, 50)):
+                    if not isinstance(tile_img, str):
+                        if tile_img[1] == 16:
+                            display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
 
         for i in range(0, player_obj.health):
             display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
@@ -164,6 +175,7 @@ def game():
 
             if player_obj.fade_alpha == 100:
                 pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
+                display.blit(resources.load_image("spellwheel", True), ((DISPLAY_WIDTH // 2) - 150, (DISPLAY_HEIGHT // 2) - 150))
                 for item in player_obj.spellcircle_items:
                     pygame.draw.rect(display, RED, item[2], False)
                     count_surface = font_small.render(str(item[1]), False, BLUE)
