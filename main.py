@@ -6,8 +6,25 @@ import os
 # Resoltuion variables, Display is stretched to match Screen which can be set by user
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 360
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 360
+if os.path.isfile("data/settings.txt"):
+    print("Settings file found!")
+    video_settings = open("data/settings.txt").read().splitlines()
+    for line in video_settings:
+        if line.startswith("resolution="):
+            SCREEN_WIDTH = int(line[line.index("=") + 1:line.index("x")])
+            SCREEN_HEIGHT = int(line[line.index("x") + 1:])
+            aspect_ratio = SCREEN_WIDTH / SCREEN_HEIGHT
+            if aspect_ratio == 4 / 3:
+                DISPLAY_HEIGHT = 480
+            elif aspect_ratio == 16 / 10:
+                DISPLAY_HEIGHT = 420
+            elif aspect_ratio == 16 / 9:
+                DISPLAY_HEIGHT = 360
+else:
+    print("No settings file found!")
+print("Resolution set to " + str(SCREEN_WIDTH) + "x" + str(SCREEN_HEIGHT) + ".")
 SCALE = SCREEN_WIDTH / DISPLAY_WIDTH
 display_rect = (0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
