@@ -1,9 +1,26 @@
+import math
 from . import entity, resources, util
 
 
 def load_spell_images():
     resources.load_image("explosion", True)
+    resources.create_fade_image("explosion", 128)
     resources.load_image("projectile-fire", True)
+
+
+def get_aim_image(shortname):
+    if shortname == "fire":
+        return resources.get_fade_image("explosion", 128)
+
+
+def get_aim_radius(shortname):
+    if shortname == "fire":
+        return Fire.AOE_RANGE
+
+
+def is_aim_valid(shortname, start_x, start_y, target_x, target_y):
+    if shortname == "fire":
+        return Fire.check_target(start_x, start_y, target_x, target_y)
 
 
 class Spell(entity.Entity):
@@ -50,6 +67,11 @@ class Fire(Spell):
     # State constants
     PROJECTILE = 2
     AOE = 3
+
+    AOE_RANGE = 200
+
+    def check_target(start_x, start_y, target_x, target_y):
+        return math.sqrt(((target_x - start_x) ** 2) + ((target_y - start_y) ** 2)) <= Fire.AOE_RANGE
 
     def __init__(self, start_x, start_y, target_x, target_y):
         super(Fire, self).__init__("fire", 30, "explosion")

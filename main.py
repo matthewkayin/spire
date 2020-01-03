@@ -132,6 +132,10 @@ def game():
             spell_x = spell.get_x() - player_obj.get_camera_x()
             spell_y = spell.get_y() - player_obj.get_camera_y()
             display.blit(spell.get_image(), (spell_x, spell_y))
+        if player_obj.ui_substate == player_obj.AIM_SPELL:
+            pygame.draw.circle(display, WHITE, (player_obj.get_x() - player_obj.get_camera_x() + player_obj.width // 2, player_obj.get_y() - player_obj.get_camera_y() + player_obj.height // 2), player_obj.get_aim_radius(), 3)
+            if player_obj.is_aim_valid():
+                display.blit(player_obj.get_aim_image(), player_obj.get_aim_coords())
         """
         RENDER ENEMIES
         """
@@ -213,6 +217,8 @@ def handle_input():
                 input_states["player left"] = True
             elif event.key == pygame.K_SPACE:
                 input_queue.append(("spellwheel", True))
+            elif event.key == pygame.K_q:
+                input_queue.append(("quickcast", True))
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 input_queue.append(("player up", False))

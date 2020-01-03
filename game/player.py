@@ -29,6 +29,7 @@ class Player(entity.Entity):
 
         self.active_spells = []
         self.pending_spell = None
+        self.current_spell = None
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
@@ -37,10 +38,10 @@ class Player(entity.Entity):
         # UI state constants
         self.NONE = 0
         self.SPELLWHEEL = 1
-        self.CHOOSE_SPELL = 0
-        self.AIM_SPELL = 1
+        self.CHOOSE_SPELL = 1
+        self.AIM_SPELL = 2
         self.ui_state = self.NONE
-        self.ui_substate = 0
+        self.ui_substate = self.NONE
 
     def handle_input(self, input_queue, input_states, mouse_x, mouse_y):
         self.mouse_x = mouse_x
@@ -86,17 +87,24 @@ class Player(entity.Entity):
                     self.dx = 0
                 self.update_velocity = True
             elif event == ("left click", True):
-                if self.ui_state == self.SPELLWHEEL:
-                    if self.ui_substate == self.CHOOSE_SPELL:
-                        for item in self.spellcircle_items:
-                            if util.point_in_rect((self.mouse_x, self.mouse_y), item[2]):
-                                self.ui_substate = self.AIM_SPELL
-                                self.spell_to_cast = item[0][item[0].index("-") + 1:]
-                    elif self.ui_substate == self.AIM_SPELL:
-                        self.begin_spellcast(self.spell_to_cast, mouse_x + self.camera_x, mouse_y + self.camera_y)
+                if self.ui_state == self.SPELLWHEEL and self.ui_substate == self.CHOOSE_SPELL:
+                    for item in self.spellcircle_items:
+                        if util.point_in_rect((self.mouse_x, self.mouse_y), item[2]):
+                            self.ui_substate = self.AIM_SPELL
+                            self.current_spell = item[0][item[0].index("-") + 1:]
+                elif self.ui_substate == self.AIM_SPELL and (self.ui_state == self.NONE or self.ui_state == self.SPELLWHEEL):
+                    if self.is_aim_valid():
+                        self.begin_spellcast(self.current_spell, mouse_x + self.camera_x, mouse_y + self.camera_y)
                         self.ui_state = self.NONE
+                        self.ui_substate = self.NONE
             elif event == ("spellwheel", True):
                 self.toggle_spellwheel()
+            elif event == ("quickcast", True):
+                if self.ui_state == self.NONE:
+                    if self.ui_substate == self.NONE and self.current_spell is not None:
+                        self.ui_substate = self.AIM_SPELL
+                    elif self.ui_substate == self.AIM_SPELL:
+                        self.ui_substate = self.NONE
 
     def update(self, dt):
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
@@ -111,7 +119,9 @@ class Player(entity.Entity):
                     self.cancel_spellcast()
                 else:
                     if self.pending_spell.state == spells.Spell.CAST_READY:
-                        self.remove_item("spellbook-" + self.spell_to_cast)
+                        self.remove_item("spellbook-" + self.current_spell)
+                        if "spellbook-" + self.current_spell not in self.inventory.keys():
+                            self.current_spell = None
                         self.pending_spell.cast()
                         self.active_spells.append(self.pending_spell)
                         self.pending_spell = None
@@ -180,6 +190,8 @@ class Player(entity.Entity):
         return resources.get_image("heart")
 
     def begin_spellcast(self, shortname, target_x, target_y):
+        if self.current_spell is None:
+            return
         if self.pending_spell is not None:
             self.cancel_spellcast()
         if shortname == "fire":
@@ -229,6 +241,20 @@ class Player(entity.Entity):
             entry.append(castable_spells[i][1])
             entry.append(self.get_spellcircle_coords(90 + (i * degree_padding)))
             self.spellcircle_items.append(entry)
+
+    def is_aim_valid(self):
+        return spells.is_aim_valid(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
+
+    def get_aim_radius(self):
+        return spells.get_aim_radius(self.current_spell)
+
+    def get_aim_image(self):
+        if self.current_spell is None:
+            return None
+        return spells.get_aim_image(self.current_spell)
+
+    def get_aim_coords(self):
+        return (self.mouse_x - 25, self.mouse_y - 25)
 
     def add_item(self, shortname, quantity=1):
         if shortname in self.inventory.keys():

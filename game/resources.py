@@ -23,6 +23,29 @@ def get_image(path):
     return image_cache[path]
 
 
+def create_fade_image(path, alpha):
+    if path not in image_cache.keys():
+        print("Error! You tried to apply transparency to an image that you haven't loaded yet!")
+        return None
+
+    new_path = path + "&alpha=" + str(alpha)
+    if new_path not in image_cache.keys():
+        new_image = image_cache[path].copy()
+        new_image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
+        image_cache[new_path] = new_image
+
+    return image_cache[new_path]
+
+
+def get_fade_image(path, alpha):
+    new_path = path + "&alpha=" + str(alpha)
+    if new_path not in image_cache.keys():
+        print("Error! Tried to get a faded image that hasn't been created yet!")
+        return None
+
+    return image_cache[new_path]
+
+
 def load_tileset(path):
     if path not in tileset_cache.keys():
         TILE_WIDTH = 50
