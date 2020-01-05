@@ -1,4 +1,5 @@
 import pygame.image
+import pygame.transform
 
 
 image_cache = {}
@@ -44,6 +45,10 @@ def get_fade_image(path, alpha):
         return None
 
     return image_cache[new_path]
+
+
+def rotate(image, degree):
+    return pygame.transform.rotate(image, degree)
 
 
 def load_tileset(path):

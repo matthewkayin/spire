@@ -1,4 +1,4 @@
-from . import entity, util
+from . import entity, util, spells
 
 
 class Enemy(entity.Entity):
@@ -28,6 +28,7 @@ class Enemy(entity.Entity):
         self.POWER = 1
 
         self.health = 1
+        self.freeze_timer = 0
 
     def update(self, dt, player_rect):
         # If we finished an attack last turn, we want to reset these variables so the hit happens only once
@@ -57,4 +58,14 @@ class Enemy(entity.Entity):
                 vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
                 self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
 
+        if self.freeze_timer >= 0:
+            self.freeze_timer -= dt
+            self.vx, self.vy = (0, 0)
+
         super(Enemy, self).update(dt)
+
+    def handle_spell_action(self, action, action_value):
+        if action == spells.Spell.DAMAGE:
+            self.health -= action_value
+        elif action == spells.Spell.FREEZE:
+            self.freeze_timer = action_value

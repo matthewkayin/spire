@@ -33,7 +33,7 @@ class Player(entity.Entity):
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
-        self.add_item("spellbook-lightning")
+        self.add_item("spellbook-ice", 3)
 
         # UI state constants
         self.NONE = 0
@@ -194,8 +194,7 @@ class Player(entity.Entity):
             return
         if self.pending_spell is not None:
             self.cancel_spellcast()
-        if shortname == "fire":
-            self.pending_spell = spells.Fire(self.x + 5, self.y, target_x, target_y)
+        self.pending_spell = spells.get_spell(self.current_spell, self.x, self.y, target_x, target_y)
 
     def cancel_spellcast(self):
         self.pending_spell = None
@@ -245,16 +244,14 @@ class Player(entity.Entity):
     def is_aim_valid(self):
         return spells.is_aim_valid(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
 
-    def get_aim_radius(self):
-        return spells.get_aim_radius(self.current_spell)
-
-    def get_aim_image(self):
+    def get_aim_info(self):
         if self.current_spell is None:
             return None
-        return spells.get_aim_image(self.current_spell)
+        info = spells.get_aim_info(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
+        return (info[0], (int(info[1][0] - self.camera_x), int(info[1][1] - self.camera_y)))
 
-    def get_aim_coords(self):
-        return (self.mouse_x - 25, self.mouse_y - 25)
+    def get_aim_radius(self):
+        return spells.get_aim_radius(self.current_spell)
 
     def add_item(self, shortname, quantity=1):
         if shortname in self.inventory.keys():

@@ -100,9 +100,10 @@ def game():
                         if player_obj.collides(enemy.hurtbox):
                             player_obj.health -= enemy.POWER
                     for spell in player_obj.active_spells:
-                        if spell.deal_damage:
+                        if spell.action is not None:
                             if enemy.collides(spell.get_rect()):
-                                enemy.health -= spell.DAMAGE
+                                enemy.handle_spell_action(spell.action, spell.action_value)
+                                spell.handle_collision()
                 room.enemies = [enemy for enemy in room.enemies if enemy.health >= 0]
             player_obj.update_camera()
 
@@ -135,7 +136,8 @@ def game():
         if player_obj.ui_substate == player_obj.AIM_SPELL:
             pygame.draw.circle(display, WHITE, (player_obj.get_x() - player_obj.get_camera_x() + player_obj.width // 2, player_obj.get_y() - player_obj.get_camera_y() + player_obj.height // 2), player_obj.get_aim_radius(), 3)
             if player_obj.is_aim_valid():
-                display.blit(player_obj.get_aim_image(), player_obj.get_aim_coords())
+                aim_info = player_obj.get_aim_info()
+                display.blit(aim_info[0], aim_info[1])
         """
         RENDER ENEMIES
         """

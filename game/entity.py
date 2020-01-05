@@ -10,6 +10,7 @@ class Entity():
         image_object = resources.load_image(image, has_alpha)
 
         self.image = image
+        self.rotation = None
         self.x = 0
         self.y = 0
         self.width = image_object.get_rect().width
@@ -34,4 +35,7 @@ class Entity():
         return util.rects_collide(self.get_rect(), other)
 
     def get_image(self):
-        return resources.get_image(self.image)
+        if self.rotation is None:
+            return resources.get_image(self.image)
+        else:
+            return resources.rotate(resources.get_image(self.image), self.rotation)
