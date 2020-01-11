@@ -8,6 +8,10 @@ def load_spell_images():
     resources.load_image("projectile-fire", True)
     resources.load_image("icicle", True)
     resources.create_fade_image("icicle", 128)
+    resources.load_image("spellbook-fire", True)
+    resources.load_image("spellbook-ice", True)
+    resources.load_image("fire", True)
+    resources.load_image("ice", True)
 
 
 def get_aim_info(shortname, start_x, start_y, target_x, target_y):
@@ -16,8 +20,10 @@ def get_aim_info(shortname, start_x, start_y, target_x, target_y):
         return (resources.get_fade_image("explosion", 128), coords)
     elif shortname == "ice":
         coords = Ice.get_aim_coords(start_x, start_y, target_x, target_y)
-        angle = math.degrees(math.atan((target_x - start_x) / (target_y - start_y)))
-        return (resources.rotate(resources.get_fade_image("icicle", 128), angle), coords)
+        angle = util.get_point_angle((start_x, start_y), (target_x, target_y)) - 90
+        image, offset = resources.rotate(resources.get_fade_image("icicle", 128), angle)
+        coords = (coords[0] + offset[0], coords[1] + offset[1])
+        return (image, coords)
 
 
 def get_aim_radius(shortname):
@@ -164,7 +170,7 @@ class Ice(Spell):
         self.x, self.y = Ice.get_aim_coords(start_x, start_y, target_x, target_y)
         self.start_x = start_x
         self.start_y = start_y
-        self.rotation = math.degrees(math.atan((target_y - start_y) / (target_x - start_x)))
+        self.rotation = util.get_point_angle((start_x, start_y), (target_x, target_y)) - 90
 
         self.PROJECTILE_SPEED = 3
 

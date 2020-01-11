@@ -27,3 +27,15 @@ def rects_collide(rect1, rect2):
 
 def point_in_rect(point, rect):
     return rects_collide((point[0], point[1], 1, 1), rect)
+
+
+def get_point_angle(point1, point2):
+    xdiff = point2[0] - point1[0]
+    ydiff = point2[1] - point1[1]
+    angle = math.degrees(math.atan2(ydiff, xdiff))
+    if angle > 0:
+        angle = 360 - angle
+    elif angle < 0:
+        angle *= -1
+
+    return angle

@@ -194,7 +194,7 @@ class Player(entity.Entity):
             return
         if self.pending_spell is not None:
             self.cancel_spellcast()
-        self.pending_spell = spells.get_spell(self.current_spell, self.x, self.y, target_x, target_y)
+        self.pending_spell = spells.get_spell(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), target_x, target_y)
 
     def cancel_spellcast(self):
         self.pending_spell = None

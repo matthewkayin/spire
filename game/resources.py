@@ -47,8 +47,25 @@ def get_fade_image(path, alpha):
     return image_cache[new_path]
 
 
-def rotate(image, degree):
-    return pygame.transform.rotate(image, degree)
+def rotate(image, angle):
+    origin_pos = image.get_rect().center
+
+    # calcaulate the axis aligned bounding box of the rotated image
+    w, h = image.get_size()
+    box = [pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]]
+    box_rotate = [p.rotate(angle) for p in box]
+    min_box = (min(box_rotate, key=lambda p: p[0])[0], min(box_rotate, key=lambda p: p[1])[1])
+    max_box = (max(box_rotate, key=lambda p: p[0])[0], max(box_rotate, key=lambda p: p[1])[1])
+
+    # calculate the translation of the pivot
+    pivot = pygame.math.Vector2(origin_pos[0], -origin_pos[1])
+    pivot_rotate = pivot.rotate(angle)
+    pivot_move = pivot_rotate - pivot
+
+    rotated_image = pygame.transform.rotate(image, angle)
+    offset = (min_box[0] - origin_pos[0] - pivot_move[0], max_box[1] - origin_pos[1] - pivot_move[1])
+
+    return rotated_image, offset
 
 
 def load_tileset(path):

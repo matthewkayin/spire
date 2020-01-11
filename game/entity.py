@@ -11,6 +11,8 @@ class Entity():
 
         self.image = image
         self.rotation = None
+        self.offset_x = 0
+        self.offset_y = 0
         self.x = 0
         self.y = 0
         self.width = image_object.get_rect().width
@@ -23,10 +25,10 @@ class Entity():
         self.y += self.vy * dt
 
     def get_x(self):
-        return int(round(self.x))
+        return int(round(self.x)) + (int(self.offset_x))
 
     def get_y(self):
-        return int(round(self.y))
+        return int(round(self.y)) + (int(self.offset_y))
 
     def get_rect(self):
         return (self.x, self.y, self.width, self.height)
@@ -38,4 +40,6 @@ class Entity():
         if self.rotation is None:
             return resources.get_image(self.image)
         else:
-            return resources.rotate(resources.get_image(self.image), self.rotation)
+            image, offset = resources.rotate(resources.get_image(self.image), self.rotation)
+            self.offset_x, self.offset_y = offset
+            return image

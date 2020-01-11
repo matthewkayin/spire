@@ -138,6 +138,7 @@ def game():
             if player_obj.is_aim_valid():
                 aim_info = player_obj.get_aim_info()
                 display.blit(aim_info[0], aim_info[1])
+                # pygame.draw.rect(display, RED, (aim_info[1][0], aim_info[1][1], 10, 20), False)
         """
         RENDER ENEMIES
         """
@@ -180,10 +181,11 @@ def game():
             display.blit(fade_surface, (0, 0))
 
             if player_obj.fade_alpha == 100:
-                pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
+                # pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
                 display.blit(resources.load_image("spellwheel", True), ((DISPLAY_WIDTH // 2) - 150, (DISPLAY_HEIGHT // 2) - 150))
                 for item in player_obj.spellcircle_items:
-                    pygame.draw.rect(display, RED, item[2], False)
+                    # pygame.draw.rect(display, RED, item[2], False)
+                    display.blit(resources.get_image(item[0][item[0].index("-") + 1:]), (item[2][0], item[2][1]))
                     count_surface = font_small.render(str(item[1]), False, BLUE)
                     display.blit(count_surface, ((item[2][0] + int(item[2][2] * 0.8), item[2][1] + int(item[2][3] * 0.8))))
 
