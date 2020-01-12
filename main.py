@@ -138,7 +138,6 @@ def game():
             if player_obj.is_aim_valid():
                 aim_info = player_obj.get_aim_info()
                 display.blit(aim_info[0], aim_info[1])
-                # pygame.draw.rect(display, RED, (aim_info[1][0], aim_info[1][1], 10, 20), False)
         """
         RENDER ENEMIES
         """

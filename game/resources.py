@@ -1,5 +1,6 @@
 import pygame.image
 import pygame.transform
+import random
 
 
 image_cache = {}
@@ -47,8 +48,9 @@ def get_fade_image(path, alpha):
     return image_cache[new_path]
 
 
-def rotate(image, angle):
-    origin_pos = image.get_rect().center
+def rotate(image, angle, origin_pos=None):
+    if origin_pos is None:
+        origin_pos = image.get_rect().center
 
     # calcaulate the axis aligned bounding box of the rotated image
     w, h = image.get_size()
@@ -63,7 +65,7 @@ def rotate(image, angle):
     pivot_move = pivot_rotate - pivot
 
     rotated_image = pygame.transform.rotate(image, angle)
-    offset = (min_box[0] - origin_pos[0] - pivot_move[0], max_box[1] - origin_pos[1] - pivot_move[1])
+    offset = (int(min_box[0] - origin_pos[0] - pivot_move[0]), int(pivot_move[1] - max_box[1] - origin_pos[1]))
 
     return rotated_image, offset
 
@@ -96,3 +98,43 @@ def get_tile(path, index):
         return None
 
     return tileset_cache[path][index]
+
+
+def create_lightning(length, angle):
+    JAGGEDNESS = 10  # Make smaller for more points per bolt
+    SWAY = 6  # Make larger for more possible variation per point
+
+    lightning = pygame.Surface((50, length), pygame.SRCALPHA)
+
+    point_ys = []
+    for i in range(0, length // JAGGEDNESS):
+        num = random.randint(10, length - 10)
+        while num in point_ys:
+            num = random.randint(10, length - 10)
+        point_ys.append(num)
+    point_ys.insert(0, 4)
+    point_ys.append(196)
+    point_ys.sort()
+
+    points = []
+    points.append((25 - 3, point_ys[0]))
+    for i in range(1, len(point_ys) - 1):
+        offset = random.randint(1, SWAY)
+        negative = 0 == random.randint(0, 1)
+        if negative:
+            offset *= -1
+        x_value = points[i - 1][0] + offset
+        if x_value < 0 or x_value >= 50:
+            offset *= -1
+            x_value += (offset * 2)
+        points.append((x_value, point_ys[i]))
+    points.append((25 - 3, point_ys[len(point_ys) - 1]))
+
+    for i in range(1, len(points)):
+        pygame.draw.line(lightning, (200, 200, 255, 70), points[i - 1], points[i], 4)
+        pygame.draw.line(lightning, (200, 200, 255, 120), points[i - 1], points[i], 3)
+        pygame.draw.line(lightning, (200, 200, 255, 255), points[i - 1], points[i], 2)
+
+    # return lightning
+    return rotate(lightning, angle, (26, 0))
+    # return pygame.transform.rotate(lightning, angle)

@@ -25,10 +25,10 @@ class Entity():
         self.y += self.vy * dt
 
     def get_x(self):
-        return int(round(self.x)) + (int(self.offset_x))
+        return int(round(self.x)) + self.offset_x
 
     def get_y(self):
-        return int(round(self.y)) + (int(self.offset_y))
+        return int(round(self.y)) + self.offset_y
 
     def get_rect(self):
         return (self.x, self.y, self.width, self.height)
