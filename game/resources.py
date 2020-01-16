@@ -135,6 +135,4 @@ def create_lightning(length, angle):
         pygame.draw.line(lightning, (200, 200, 255, 120), points[i - 1], points[i], 3)
         pygame.draw.line(lightning, (200, 200, 255, 255), points[i - 1], points[i], 2)
 
-    # return lightning
     return rotate(lightning, angle, (26, 0))
-    # return pygame.transform.rotate(lightning, angle)

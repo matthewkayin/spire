@@ -3,6 +3,7 @@ from . import entity, resources, util
 
 
 def load_spell_images():
+    resources.load_image("fire", True)
     resources.load_image("explosion", True)
     resources.create_fade_image("explosion", 128)
     resources.load_image("projectile-fire", True)
@@ -10,8 +11,10 @@ def load_spell_images():
     resources.create_fade_image("icicle", 128)
     resources.load_image("spellbook-fire", True)
     resources.load_image("spellbook-ice", True)
-    resources.load_image("fire", True)
     resources.load_image("ice", True)
+    resources.load_image("lightning", True)
+    resources.load_image("target", True)
+    resources.create_fade_image("target", 128)
 
 
 def get_aim_info(shortname, start_x, start_y, target_x, target_y):
@@ -24,6 +27,11 @@ def get_aim_info(shortname, start_x, start_y, target_x, target_y):
         image, offset = resources.rotate(resources.get_fade_image("icicle", 128), angle)
         coords = (coords[0] + offset[0], coords[1] + offset[1])
         return (image, coords)
+    elif shortname == "lightning":
+        coords = (target_x - 4, target_y - 4)
+        image = resources.get_fade_image("target", 128)
+
+        return (image, coords)
 
 
 def get_aim_radius(shortname):
@@ -31,12 +39,20 @@ def get_aim_radius(shortname):
         return Fire.AOE_RANGE
     elif shortname == "ice":
         return 50
+    elif shortname == "lightning":
+        return Lightning.AIM_RANGE
+
+
+def requires_specific_target(shortname):
+    return shortname == "lightning"
 
 
 def is_aim_valid(shortname, start_x, start_y, target_x, target_y):
     if shortname == "fire":
         return Fire.check_target(start_x, start_y, target_x, target_y)
     elif shortname == "ice":
+        return True
+    elif shortname == "lightning":
         return True
 
 
@@ -45,6 +61,8 @@ def get_spell(shortname, start_x, start_y, target_x, target_y):
         return Fire(start_x + 5, start_y, target_x, target_y)
     elif shortname == "ice":
         return Ice(start_x, start_y, target_x, target_y)
+    elif shortname == "lightning":
+        return Lightning(start_x + 5, start_y - 7, target_x, target_y)
 
 
 class Spell(entity.Entity):
@@ -78,6 +96,7 @@ class Spell(entity.Entity):
         self.image = image
         self.action = None
         self.action_value = 0
+        self.target = None  # Target is a specific use case spell
 
     def update(self, dt):
         if self.state == self.CHARGING:
@@ -184,3 +203,39 @@ class Ice(Spell):
 
     def handle_collision(self):
         self.end_spell()
+
+
+class Lightning(Spell):
+    # State constants
+    EFFECT = 2
+
+    AIM_RANGE = 200
+
+    def __init__(self, start_x, start_y, target_x, target_y):
+        super(Lightning, self).__init__("lightning", 60, "bolt")
+
+        self.start_x, self.start_y = start_x, start_y
+
+        self.effect_timer = 0
+        self.EFFECT_DURATION = 30
+
+    def update(self, dt):
+        super(Lightning, self).update(dt)
+
+        if self.state == Lightning.EFFECT:
+            if self.action_value > 0:
+                self.target.handle_spell_action(self.action, self.action_value)
+                self.action_value = 0
+            self.effect_timer += dt
+            if self.effect_timer >= self.EFFECT_DURATION:
+                self.end_spell()
+
+    def cast(self):
+        if self.state == Spell.CAST_READY:
+            target_x, target_y = self.target.get_x() + self.target.width // 2, self.target.get_y() + self.target.height // 2
+            self.x, self.y = target_x, target_y
+            self.length = int(math.sqrt(((target_x - self.start_x) ** 2) + ((target_y - self.start_y) ** 2)))
+            self.rotation = util.get_point_angle((self.start_x, self.start_y), (target_x, target_y))
+            self.state = Lightning.EFFECT
+            self.action = Spell.DAMAGE
+            self.action_value = 1

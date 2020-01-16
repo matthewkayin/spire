@@ -39,6 +39,10 @@ class Entity():
     def get_image(self):
         if self.rotation is None:
             return resources.get_image(self.image)
+        elif self.image == "bolt":
+            image, offset = resources.create_lightning(self.length, self.rotation - 90)
+            self.offset_x, self.offset_y = offset
+            return image
         else:
             image, offset = resources.rotate(resources.get_image(self.image), self.rotation)
             self.offset_x, self.offset_y = offset
