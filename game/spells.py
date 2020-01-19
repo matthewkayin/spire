@@ -2,6 +2,125 @@ import math
 from . import entity, resources, util
 
 
+"""
+TODO
+Think of a better tag system that incorporates the ability to differentiate between the
+behavior of duplicate effects from the same source (i.e. don't stack damage on the same
+spell) and effects from different sources (i.e. do stack damage on spells of the same type
+but that are different spells).
+
+Example "user story" of this. Say we have an aoe fire spell. Say the spell deals 3 damage/per
+second so long as an enemy is within the fire, beginning when the enemy enters. This is easy
+to impliment with unique tags: fire damage is given a tag like "fire damage" and then we say don't
+duplicate this tag. So each update the game tries to give the enemy a "fire damage" tag but the
+enemy rejects this tag because it already has one. So it will only accept a fire damage tag when
+the old fire damage tag has expired, and is cleaned out of the inventory. So we can create the
+desired spell interaction with an Interaction_Damage tag that has a damage of 3 and an end lag
+of 60 updates (1 second).
+
+The problem with this is in two cases. Case 1, the enemy steps outside of the AOE fire spell and
+then steps back inside of it. Expected behavior in my mind is that the enemy will receive a second
+dose of fire damage when they step back inside of it, however if the enemy steps in and out of the
+fire in one second, the end lag on the first Interaction_Damage will still be going, and that end
+lag is for 3 seconds, so the enemy won't actually take any additional damage. Case 2, the player
+somehow lays down two fire AOE spells at once. They're both of the same class so they have an the
+same tag, which means that the effects of an Interaction_Damage tag won't stack and the enemy
+will receive damage from only one AOE even if they step into both. Also there's another case I can
+think of: Say the player freezes an enemy and then applies a new freeze spell to the enemy. Expected
+behavior of this is that the enemy should have the freeze effect extended to the duration of one whole
+freeze spell. You could solve this by allowing the freeze effects to stack, then they would both time
+out at once which would create the effect we want, but I can see this being inefficient in the long term
+because we're updating an object that doesn't need to be updated, I would suggest a different tag system
+to somehow reconcile all three of these cases lol
+"""
+
+interaction_source_counter = 0
+
+
+def get_interaction_source():
+    global interaction_source_counter
+
+    if interaction_source_counter >= 100:
+        interaction_source_counter = 0
+    else:
+        interaction_source_counter += 1
+    return interaction_source_counter
+
+
+class Interaction():
+    # state constants
+    INTERACTING = 0
+    END_LAGGING = 1
+    ENDED = -1
+
+    # duplication behavior constants
+    EXCLUDE_SAME_TAG = 0
+    EXCLUDE_SAME_SOURCE = 1
+    EXTEND_SAME_TAG = 2
+
+    def __init__(self, tag, source, duration, end_lag=0, duplicate_behavior=EXCLUDE_SAME_TAG):
+        self.DURATION = duration
+        self.END_LAG = end_lag
+        self.tag = tag
+        self.source = source
+        self.duplicate_behavior = duplicate_behavior
+
+        self.reset()
+
+    def update(self, dt, target):
+        if self.state == Interaction.INTERACTING:
+            self.duration_timer += dt
+            if self.duration_timer >= self.DURATION:
+                self.enable_effect = False
+                self.state = Interaction.END_LAGGING
+        elif self.state == Interaction.END_LAGGING:
+            self.end_lag_timer += dt
+            if self.end_lag_timer >= self.END_LAG:
+                self.ended = True
+                self.state = Interaction.ENDED
+
+    def reset(self):
+        self.duration_timer = 0
+        self.end_lag_timer = 0
+        self.enable_effect = True
+        self.ended = False
+        self.state = Interaction.INTERACTING
+
+
+class Interaction_Damage(Interaction):
+    def __init__(self, tag, source, damage, end_lag=0):
+        super(Interaction_Damage, self).__init__(tag, source, 0, end_lag, Interaction.EXCLUDE_SAME_SOURCE)
+        self.DAMAGE = damage
+
+    def update(self, dt, target):
+        if self.enable_effect:
+            target.health -= self.DAMAGE
+
+        super(Interaction_Damage, self).update(dt, target)
+
+
+class Interaction_Stun(Interaction):
+    def __init__(self, tag, source, duration):
+        super(Interaction_Stun, self).__init__(tag, source, duration, 0, Interaction.EXTEND_SAME_TAG)
+
+    def update(self, dt, target):
+        if self.enable_effect:
+            target.vx, target.vy = (0, 0)
+
+        super(Interaction_Stun, self).update(dt, target)
+
+
+"""
+We're doing a separate branch to attempt a revamp of the current spell system
+The current spell system is very tightly coupled with other elements of the game
+and while there are hints of loose coupling present in the code the current design
+of the code ultimately makes adding new spells and making changes overall very difficult
+
+To me, the sign that I needed to change the code design was when I needed to edit the Ice
+class to make the damage effects work for the Lightning class...
+"""
+
+
 def load_spell_images():
     resources.load_image("fire", True)
     resources.load_image("explosion", True)
@@ -12,9 +131,6 @@ def load_spell_images():
     resources.load_image("spellbook-fire", True)
     resources.load_image("spellbook-ice", True)
     resources.load_image("ice", True)
-    resources.load_image("lightning", True)
-    resources.load_image("target", True)
-    resources.create_fade_image("target", 128)
 
 
 def get_aim_info(shortname, start_x, start_y, target_x, target_y):
@@ -27,11 +143,6 @@ def get_aim_info(shortname, start_x, start_y, target_x, target_y):
         image, offset = resources.rotate(resources.get_fade_image("icicle", 128), angle)
         coords = (coords[0] + offset[0], coords[1] + offset[1])
         return (image, coords)
-    elif shortname == "lightning":
-        coords = (target_x - 4, target_y - 4)
-        image = resources.get_fade_image("target", 128)
-
-        return (image, coords)
 
 
 def get_aim_radius(shortname):
@@ -39,20 +150,12 @@ def get_aim_radius(shortname):
         return Fire.AOE_RANGE
     elif shortname == "ice":
         return 50
-    elif shortname == "lightning":
-        return Lightning.AIM_RANGE
-
-
-def requires_specific_target(shortname):
-    return shortname == "lightning"
 
 
 def is_aim_valid(shortname, start_x, start_y, target_x, target_y):
     if shortname == "fire":
         return Fire.check_target(start_x, start_y, target_x, target_y)
     elif shortname == "ice":
-        return True
-    elif shortname == "lightning":
         return True
 
 
@@ -61,8 +164,6 @@ def get_spell(shortname, start_x, start_y, target_x, target_y):
         return Fire(start_x + 5, start_y, target_x, target_y)
     elif shortname == "ice":
         return Ice(start_x, start_y, target_x, target_y)
-    elif shortname == "lightning":
-        return Lightning(start_x + 5, start_y - 7, target_x, target_y)
 
 
 class Spell(entity.Entity):
@@ -94,9 +195,10 @@ class Spell(entity.Entity):
         self.charge_timer = 0
         self.state = Spell.CHARGING
         self.image = image
-        self.action = None
-        self.action_value = 0
+        self.interact = False
         self.target = None  # Target is a specific use case spell
+
+        self.source_id = get_interaction_source()
 
     def update(self, dt):
         if self.state == self.CHARGING:
@@ -113,7 +215,7 @@ class Spell(entity.Entity):
         raise NotImplementedError("Cannot cast spell without implimenting abstract method Spell.cast()")
 
     def end_spell(self):
-        self.action = None
+        self.interact = False
         self.state = Spell.ENDED
 
     def handle_collision(self):
@@ -137,7 +239,7 @@ class Fire(Spell):
         return math.sqrt(((target_x - start_x) ** 2) + ((target_y - start_y) ** 2)) <= Fire.AOE_RANGE
 
     def __init__(self, start_x, start_y, target_x, target_y):
-        super(Fire, self).__init__("fire", 120, "explosion")
+        super(Fire, self).__init__("fire", 10, "explosion")
 
         self.target_x = target_x
         self.target_y = target_y
@@ -146,7 +248,7 @@ class Fire(Spell):
 
         self.DAMAGE = 1
         self.PROJECTILE_SPEED = 3
-        self.AOE_DURATION = 60
+        self.AOE_DURATION = 60 * 3
         self.aoe_timer = 0
 
     def update(self, dt):
@@ -157,8 +259,7 @@ class Fire(Spell):
                 self.y = self.target_y - (self.height // 2)
                 self.vx, self.vy = (0, 0)
                 self.image = "explosion"
-                self.action = Spell.DAMAGE
-                self.action_value = self.DAMAGE
+                self.interact = True
                 self.aoe_timer = 0
                 self.state = Fire.AOE
         elif self.state == Fire.AOE:
@@ -172,6 +273,9 @@ class Fire(Spell):
             self.vx, self.vy = util.scale_vector(distance_vector, self.PROJECTILE_SPEED)
             self.image = "projectile-fire"
             self.state = Fire.PROJECTILE
+
+    def get_interactions(self):
+        return [Interaction_Damage("fire_damage", self.source_id, 1, 60)]
 
 
 class Ice(Spell):
@@ -198,44 +302,10 @@ class Ice(Spell):
             distance_vector = (self.x - self.start_x, self.y - self.start_y)
             self.vx, self.vy = util.scale_vector(distance_vector, self.PROJECTILE_SPEED)
             self.state = Ice.PROJECTILE
-            self.action = Spell.FREEZE
-            self.action_value = 60 * 5
+            self.interact = True
 
     def handle_collision(self):
         self.end_spell()
 
-
-class Lightning(Spell):
-    # State constants
-    EFFECT = 2
-
-    AIM_RANGE = 200
-
-    def __init__(self, start_x, start_y, target_x, target_y):
-        super(Lightning, self).__init__("lightning", 60, "bolt")
-
-        self.start_x, self.start_y = start_x, start_y
-
-        self.effect_timer = 0
-        self.EFFECT_DURATION = 30
-
-    def update(self, dt):
-        super(Lightning, self).update(dt)
-
-        if self.state == Lightning.EFFECT:
-            if self.action_value > 0:
-                self.target.handle_spell_action(self.action, self.action_value)
-                self.action_value = 0
-            self.effect_timer += dt
-            if self.effect_timer >= self.EFFECT_DURATION:
-                self.end_spell()
-
-    def cast(self):
-        if self.state == Spell.CAST_READY:
-            target_x, target_y = self.target.get_x() + self.target.width // 2, self.target.get_y() + self.target.height // 2
-            self.x, self.y = target_x, target_y
-            self.length = int(math.sqrt(((target_x - self.start_x) ** 2) + ((target_y - self.start_y) ** 2)))
-            self.rotation = util.get_point_angle((self.start_x, self.start_y), (target_x, target_y))
-            self.state = Lightning.EFFECT
-            self.action = Spell.DAMAGE
-            self.action_value = 1
+    def get_interactions(self):
+        return [Interaction_Stun("freeze", self.source_id, 60 * 5)]

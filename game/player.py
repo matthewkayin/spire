@@ -35,7 +35,6 @@ class Player(entity.Entity):
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
         self.add_item("spellbook-ice", 3)
-        self.add_item("spellbook-lightning", 3)
 
         # UI state constants
         self.NONE = 0
@@ -197,8 +196,6 @@ class Player(entity.Entity):
         if self.pending_spell is not None:
             self.cancel_spellcast()
         self.pending_spell = spells.get_spell(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), target_x, target_y)
-        if spells.requires_specific_target(self.current_spell):
-            self.pending_spell.target = self.specific_target
 
     def cancel_spellcast(self):
         self.pending_spell = None
@@ -246,8 +243,6 @@ class Player(entity.Entity):
             self.spellcircle_items.append(entry)
 
     def is_aim_valid(self):
-        if spells.requires_specific_target(self.current_spell) and self.specific_target is None:
-            return False
         return spells.is_aim_valid(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
 
     def get_aim_info(self):

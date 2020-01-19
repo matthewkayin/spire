@@ -27,8 +27,8 @@ class Enemy(entity.Entity):
         self.hurtbox = None
         self.POWER = 1
 
-        self.health = 1
-        self.freeze_timer = 0
+        self.health = 3
+        self.interactions = []
 
     def update(self, dt, player_rect):
         # If we finished an attack last turn, we want to reset these variables so the hit happens only once
@@ -58,9 +58,9 @@ class Enemy(entity.Entity):
                 vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
                 self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
 
-        if self.freeze_timer >= 0:
-            self.freeze_timer -= dt
-            self.vx, self.vy = (0, 0)
+        for interaction in self.interactions:
+            interaction.update(dt, self)
+        self.interactions = [interaction for interaction in self.interactions if not interaction.ended]
 
         super(Enemy, self).update(dt)
 
@@ -69,3 +69,15 @@ class Enemy(entity.Entity):
             self.health -= action_value
         elif action == spells.Spell.FREEZE:
             self.freeze_timer = action_value
+
+    def add_interaction(self, interaction):
+        if interaction.tag in [interaction.tag for interaciton in self.interactions]:
+            if interaction.duplicate_behavior == spells.Interaction.EXCLUDE_SAME_TAG:
+                return
+            elif interaction.duplicate_behavior == spells.Interaction.EXCLUDE_SAME_SOURCE:
+                if interaction.source in [interaction.source for interaction in self.interactions]:
+                    return
+            elif interaction.duplicate_behavior == spells.Interaction.EXTEND_SAME_TAG:
+                for other_interaction in [other_interaction for other_interaction in self.interactions if other_interaction.tag == interaction.tag]:
+                    other_interaction.reset()
+        self.interactions.append(interaction)

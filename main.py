@@ -1,4 +1,4 @@
-from game import player, resources, map, util
+from game import player, resources, map
 import pygame
 import sys
 import os
@@ -89,13 +89,6 @@ def game():
         BEGIN UPDATING
         """
         player_obj.update(dt)
-        for room in level.current_rooms:
-            for enemy in room.enemies:
-                enemy_rect = (enemy.get_x() - player_obj.get_camera_x(), enemy.get_y() - player_obj.get_camera_y(), enemy.width, enemy.height)
-                if util.point_in_rect((mouse_x, mouse_y), enemy_rect):
-                    player_obj.specific_target = enemy
-                    break
-        print(player_obj.specific_target is not None)
         if player_obj.ui_state == player_obj.NONE:
             level.update(player_obj)
             for room in level.current_rooms:
@@ -107,11 +100,12 @@ def game():
                         if player_obj.collides(enemy.hurtbox):
                             player_obj.health -= enemy.POWER
                     for spell in player_obj.active_spells:
-                        if spell.target is None and spell.action is not None:
+                        if spell.interact:
                             if enemy.collides(spell.get_rect()):
-                                enemy.handle_spell_action(spell.action, spell.action_value)
+                                for interaction in spell.get_interactions():
+                                    enemy.add_interaction(interaction)
                                 spell.handle_collision()
-                room.enemies = [enemy for enemy in room.enemies if enemy.health >= 0]
+                room.enemies = [enemy for enemy in room.enemies if enemy.health > 0]
             player_obj.update_camera()
 
         """
