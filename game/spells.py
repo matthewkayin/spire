@@ -90,11 +90,19 @@ SPELLS
 def load_spell_images():
     resources.load_image("fire", True)
     resources.load_image("spellbook-fire", True)
+    resources.load_image("ice", True)
+    resources.load_image("spellbook-ice", True)
+    resources.load_image("golem", True)
+    resources.load_image("spellbook-golem", True)
 
 
 def get_by_name(shortname):
     if shortname == "fire":
         return Fire()
+    elif shortname == "ice":
+        return Needle()
+    elif shortname == "golem":
+        return Golem()
 
 
 class Spell(entity.Entity):
@@ -117,6 +125,8 @@ class Spell(entity.Entity):
 
         self.source_id = get_interaction_source()
         self.interact = False
+        self.handles_collisions = False
+        self.requests_enemies = False
 
         for image in images:
             resources.load_image(image, True)
@@ -140,8 +150,12 @@ class Spell(entity.Entity):
         else:
             return super(Spell, self).get_image()
 
+    def get_subrenderables(self):
+        return []
+
     def end_spell(self):
         self.interact = False
+        self.handles_collisions = False
         self.state = Spell.ENDED
 
     def begin_charging(self, start, target):
@@ -165,6 +179,41 @@ class Spell(entity.Entity):
         raise NotImplementedError("Need to impliment abstract function Spell.get_aim_coords()")
 
 
+class Needle(Spell):
+    # State constants
+    PROJECTILE = 3
+
+    PROJECTILE_SPEED = 3
+
+    def __init__(self):
+        super(Needle, self).__init__(["icicle"], 0, 20, 50)
+
+    def cast(self):
+        if self.state == Spell.CAST_READY:
+            self.x, self.y = self.get_aim_coords(self.start, self.target)
+            distance_vector = ((self.x + 10) - self.start[0], (self.y + 10) - self.start[1])
+            self.vx, self.vy = util.scale_vector(distance_vector, self.PROJECTILE_SPEED)
+            self.interact = True
+            self.handles_collisions = True
+            self.state = Needle.PROJECTILE
+
+    def get_interactions(self):
+        return [Interaction_Damage("blood_damage", self.source_id, 3)]
+
+    def handle_collision(self):
+        if self.state == Needle.PROJECTILE:
+            self.end_spell()
+
+    def is_aim_valid(self, start, target):
+        return True
+
+    def get_aim_coords(self, start, target):
+        distance_vector = (target[0] - start[0], target[1] - start[1])
+        scaled_vector = util.scale_vector(distance_vector, 50)
+        self.rotation = util.get_point_angle(start, target) - 90
+        return (start[0] + scaled_vector[0] + self.offset_x, start[1] + scaled_vector[1] + self.offset_y)
+
+
 class Fire(Spell):
     # State constants
     PROJECTILE = 3
@@ -180,7 +229,7 @@ class Fire(Spell):
 
     def update(self, dt):
         if self.state == Fire.PROJECTILE:
-            if util.get_distance((self.x, self.y), self.target) <= 5:
+            if util.get_distance((self.x + self.width // 2, self.y + self.height // 2), self.target) <= 5:
                 self.vx, self.vy = (0, 0)
                 self.x, self.y = self.target[0] - 25, self.target[1] - 25
                 self.interact = True
@@ -200,12 +249,16 @@ class Fire(Spell):
         self.vx, self.vy = util.scale_vector(distance_vector, Fire.PROJECTILE_SPEED)
         self.image = self.images[0]
         self.update_rect()
+        self.handles_collisions = True
         self.state = Fire.PROJECTILE
 
     def get_interactions(self):
         return [Interaction_Damage("fire_damage", self.source_id, 1, 60)]
 
     def handle_collision(self):
+        if self.state == Fire.PROJECTILE:
+            self.target = self.x, self.y
+            self.vx, self.vy = (0, 0)
         return
 
     def is_aim_valid(self, start, target):
@@ -213,3 +266,96 @@ class Fire(Spell):
 
     def get_aim_coords(self, start, target):
         return (target[0] - 25, target[1] - 25)
+
+
+class Golem(Spell):
+    # State constants
+    GOLEM = 3
+    WAIT = 4
+
+    GOLEM_DURATION = 30 * 60
+    FIRE_DURATION = 20
+
+    BULLET_SPEED = 3
+
+    def __init__(self):
+        super(Golem, self).__init__(["golem-guy", "projectile-rock"], 0, 60, 200)
+
+        self.golem_timer = 0
+        self.fire_timer = 0
+        self.requests_enemies = True
+        self.enemies = []
+        self.recent_collider = None
+
+        self.bullets = []
+        self.bullet_targets = []
+
+    def get_subrenderables(self):
+        subrenderables = []
+        if len(self.bullets) > 0:
+            subrenderable_item = []
+            subrenderable_item.append(self.bullets[0].get_image())
+            for bullet in self.bullets:
+                subrenderable_item.append((bullet.get_x(), bullet.get_y()))
+            subrenderables.append(subrenderable_item)
+
+        return subrenderables
+
+    def update(self, dt):
+        for bullet in self.bullets:
+            if len(self.enemies) != 0:
+                nearest_index = 0
+                nearest_distance = util.get_distance(bullet.get_center(), self.enemies[0])
+                for i in range(1, len(self.enemies)):
+                    distance = util.get_distance(bullet.get_center(), self.enemies[i])
+                    if distance < nearest_distance:
+                        nearest_distance = distance
+                        nearest_index = i
+                distance_vector = (self.enemies[nearest_index][0] - bullet.x, self.enemies[nearest_index][1] - bullet.y)
+                bullet.vx, bullet.vy = util.scale_vector(distance_vector, Golem.BULLET_SPEED)
+            bullet.update(dt)
+
+        if self.state == Golem.GOLEM:
+            self.golem_timer += dt
+            if self.golem_timer >= Golem.GOLEM_DURATION:
+                self.state = Golem.WAIT
+            self.fire_timer += dt
+            if self.fire_timer >= Golem.FIRE_DURATION:
+                if len(self.enemies) != 0:
+                    self.fire_timer = 0
+                    self.spawn_bullet()
+        elif self.state == Golem.WAIT:
+            if len(self.bullets) == 0:
+                self.end_spell()
+
+        super(Golem, self).update(dt)
+
+    def spawn_bullet(self):
+        new_bullet = entity.Entity(self.images[1], True)
+        new_bullet.x, new_bullet.y = self.x, self.y
+        self.bullets.append(new_bullet)
+
+    def collides(self, other):
+        self.recent_collider = other
+        remove_indeces = [i for i in range(0, len(self.bullets)) if self.bullets[i].collides(other)]
+        self.bullets = [self.bullets[i] for i in range(0, len(self.bullets)) if i not in remove_indeces]
+
+        return len(remove_indeces) > 0
+
+    def cast(self):
+        self.state = Golem.GOLEM
+        self.x, self.y = self.get_aim_coords(self.start, self.target)
+        self.handles_collisions = True
+        self.interact = True
+
+    def get_interactions(self):
+        return [Interaction_Damage("golem_damage", self.source_id, 1)]
+
+    def handle_collision(self):
+        return True
+
+    def is_aim_valid(self, start, target):
+        return util.get_distance(start, target) <= self.AIM_RADIUS
+
+    def get_aim_coords(self, start, target):
+        return (target[0] - (self.width // 2), target[1] - (self.height // 2))

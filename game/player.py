@@ -33,7 +33,8 @@ class Player(entity.Entity):
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
-        # self.add_item("spellbook-ice", 3)
+        self.add_item("spellbook-ice", 3)
+        self.add_item("spellbook-golem", 3)
 
         # UI state constants
         self.NONE = 0

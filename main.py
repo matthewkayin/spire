@@ -89,6 +89,12 @@ def game():
         BEGIN UPDATING
         """
         player_obj.update(dt)
+        for spell in player_obj.active_spells:
+            if spell.requests_enemies:
+                spell.enemies = []
+                for room in level.current_rooms:
+                    for enemy in room.enemies:
+                        spell.enemies.append((enemy.x, enemy.y))
         if player_obj.ui_state == player_obj.NONE:
             level.update(player_obj)
             for room in level.current_rooms:
@@ -100,10 +106,11 @@ def game():
                         if player_obj.collides(enemy.hurtbox):
                             player_obj.health -= enemy.POWER
                     for spell in player_obj.active_spells:
-                        if spell.interact:
-                            if enemy.collides(spell.get_rect()):
-                                for interaction in spell.get_interactions():
-                                    enemy.add_interaction(interaction)
+                        if spell.handles_collisions:
+                            if spell.collides(enemy.get_rect()):
+                                if spell.interact:
+                                    for interaction in spell.get_interactions():
+                                        enemy.add_interaction(interaction)
                                 spell.handle_collision()
                 room.enemies = [enemy for enemy in room.enemies if enemy.health > 0]
             player_obj.update_camera()
@@ -134,11 +141,16 @@ def game():
             spell_x = spell.get_x() - player_obj.get_camera_x()
             spell_y = spell.get_y() - player_obj.get_camera_y()
             display.blit(spell.get_image(), (spell_x, spell_y))
+            for subrenderable in spell.get_subrenderables():
+                subrender_img = subrenderable[0]
+                for subrender_coords in subrenderable[1:]:
+                    coords = (subrender_coords[0] - player_obj.get_camera_x(), subrender_coords[1] - player_obj.get_camera_y())
+                    display.blit(subrender_img, coords)
         if player_obj.ui_substate == player_obj.AIM_SPELL:
             pygame.draw.circle(display, WHITE, (player_obj.get_x() - player_obj.get_camera_x() + player_obj.width // 2, player_obj.get_y() - player_obj.get_camera_y() + player_obj.height // 2), player_obj.pending_spell.AIM_RADIUS, 3)
             if player_obj.pending_spell.is_aim_valid(player_obj.get_center(), player_obj.get_aim()):
                 aim_coords = player_obj.pending_spell.get_aim_coords(player_obj.get_center(), player_obj.get_aim())
-                aim_coords = (aim_coords[0] - player_obj.get_camera_x(), aim_coords[1] - player_obj.get_camera_y())
+                aim_coords = (int(aim_coords[0] - player_obj.get_camera_x()), int(aim_coords[1] - player_obj.get_camera_y()))
                 display.blit(player_obj.pending_spell.get_image(), aim_coords)
         """
         RENDER ENEMIES

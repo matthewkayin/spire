@@ -46,9 +46,9 @@ class Entity():
     def get_image(self, alpha=255):
         image = None
         if alpha == 255:
-            return resources.get_image(self.image)
+            image = resources.get_image(self.image)
         else:
-            return resources.get_fade_image(self.image, alpha)
+            image = resources.get_fade_image(self.image, alpha)
         if self.rotation is None:
             return image
         else:
