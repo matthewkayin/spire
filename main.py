@@ -135,10 +135,11 @@ def game():
             spell_y = spell.get_y() - player_obj.get_camera_y()
             display.blit(spell.get_image(), (spell_x, spell_y))
         if player_obj.ui_substate == player_obj.AIM_SPELL:
-            pygame.draw.circle(display, WHITE, (player_obj.get_x() - player_obj.get_camera_x() + player_obj.width // 2, player_obj.get_y() - player_obj.get_camera_y() + player_obj.height // 2), player_obj.get_aim_radius(), 3)
-            if player_obj.is_aim_valid():
-                aim_info = player_obj.get_aim_info()
-                display.blit(aim_info[0], aim_info[1])
+            pygame.draw.circle(display, WHITE, (player_obj.get_x() - player_obj.get_camera_x() + player_obj.width // 2, player_obj.get_y() - player_obj.get_camera_y() + player_obj.height // 2), player_obj.pending_spell.AIM_RADIUS, 3)
+            if player_obj.pending_spell.is_aim_valid(player_obj.get_center(), player_obj.get_aim()):
+                aim_coords = player_obj.pending_spell.get_aim_coords(player_obj.get_center(), player_obj.get_aim())
+                aim_coords = (aim_coords[0] - player_obj.get_camera_x(), aim_coords[1] - player_obj.get_camera_y())
+                display.blit(player_obj.pending_spell.get_image(), aim_coords)
         """
         RENDER ENEMIES
         """

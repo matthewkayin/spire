@@ -2,7 +2,7 @@ import math
 
 
 def get_distance(point1, point2):
-    return math.sqrt(((point2[0] - point1[0]) ** 2) + ((point2[1] - point1[0]) ** 2))
+    return math.sqrt(((point2[0] - point1[0]) ** 2) + ((point2[1] - point1[1]) ** 2))
 
 
 def scale_vector(old_vector, new_magnitude):

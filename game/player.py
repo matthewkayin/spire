@@ -29,12 +29,11 @@ class Player(entity.Entity):
 
         self.active_spells = []
         self.pending_spell = None
-        self.current_spell = None
-        self.specific_target = None
+        self.recent_spell = None
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
-        self.add_item("spellbook-ice", 3)
+        # self.add_item("spellbook-ice", 3)
 
         # UI state constants
         self.NONE = 0
@@ -92,17 +91,18 @@ class Player(entity.Entity):
                     for item in self.spellcircle_items:
                         if util.point_in_rect((self.mouse_x, self.mouse_y), item[2]):
                             self.ui_substate = self.AIM_SPELL
-                            self.current_spell = item[0][item[0].index("-") + 1:]
+                            self.recent_spell = item[0][item[0].index("-") + 1:]
+                            self.pending_spell = spells.get_by_name(self.recent_spell)
                 elif self.ui_substate == self.AIM_SPELL and (self.ui_state == self.NONE or self.ui_state == self.SPELLWHEEL):
-                    if self.is_aim_valid():
-                        self.begin_spellcast(self.current_spell, mouse_x + self.camera_x, mouse_y + self.camera_y)
+                    if self.pending_spell.is_aim_valid(self.get_center(), self.get_aim()):
+                        self.begin_spellcast()
                         self.ui_state = self.NONE
                         self.ui_substate = self.NONE
             elif event == ("spellwheel", True):
                 self.toggle_spellwheel()
             elif event == ("quickcast", True):
                 if self.ui_state == self.NONE:
-                    if self.ui_substate == self.NONE and self.current_spell is not None:
+                    if self.ui_substate == self.NONE and self.recent_spell is not None:
                         self.ui_substate = self.AIM_SPELL
                     elif self.ui_substate == self.AIM_SPELL:
                         self.ui_substate = self.NONE
@@ -116,19 +116,18 @@ class Player(entity.Entity):
         if self.ui_state == self.NONE:
 
             if self.pending_spell is not None:
-                if self.vx != 0 or self.vy != 0:
+                if self.pending_spell.state == spells.Spell.CHARGING and (self.vx != 0 or self.vy != 0):
                     self.cancel_spellcast()
+                elif self.pending_spell.state == spells.Spell.CAST_READY:
+                    self.remove_item("spellbook-" + self.recent_spell)
+                    if "spellbook-" + self.recent_spell not in self.inventory.keys():
+                        self.recent_spell = None
+                    self.pending_spell.cast()
+                    self.active_spells.append(self.pending_spell)
+                    self.pending_spell = None
                 else:
-                    if self.pending_spell.state == spells.Spell.CAST_READY:
-                        self.remove_item("spellbook-" + self.current_spell)
-                        if "spellbook-" + self.current_spell not in self.inventory.keys():
-                            self.current_spell = None
-                        self.pending_spell.cast()
-                        self.active_spells.append(self.pending_spell)
-                        self.pending_spell = None
-                    else:
-                        # It's important to put the update in the else otherwise we will update the spell twice in one update
-                        self.pending_spell.update(dt)
+                    # It's important to put the update in the else otherwise we will update the spell twice in one update
+                    self.pending_spell.update(dt)
 
             for spell in self.active_spells:
                 spell.update(dt)
@@ -181,6 +180,9 @@ class Player(entity.Entity):
                 self.y += y_step
                 self.camera_y += y_step
 
+    def get_aim(self):
+        return (int(self.mouse_x + self.camera_x), int(self.mouse_y + self.camera_y))
+
     def get_camera_x(self):
         return int(round(self.camera_x))
 
@@ -190,21 +192,19 @@ class Player(entity.Entity):
     def get_heart_image(self):
         return resources.get_image("heart")
 
-    def begin_spellcast(self, shortname, target_x, target_y):
-        if self.current_spell is None:
+    def begin_spellcast(self):
+        if self.pending_spell is None:
             return
-        if self.pending_spell is not None:
-            self.cancel_spellcast()
-        self.pending_spell = spells.get_spell(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), target_x, target_y)
+        self.pending_spell.begin_charging(self.get_center(), self.get_aim())
 
     def cancel_spellcast(self):
         self.pending_spell = None
 
     def get_chargebar_percentage(self):
-        if self.pending_spell is None:
-            return 0
-        else:
+        if self.pending_spell is not None and self.pending_spell.state == spells.Spell.CHARGING:
             return (self.pending_spell.charge_timer / self.pending_spell.CHARGE_TIME)
+        else:
+            return 0
 
     def toggle_spellwheel(self):
         if self.ui_state == self.NONE:
@@ -241,18 +241,6 @@ class Player(entity.Entity):
             entry.append(castable_spells[i][1])
             entry.append(self.get_spellcircle_coords(90 + (i * degree_padding)))
             self.spellcircle_items.append(entry)
-
-    def is_aim_valid(self):
-        return spells.is_aim_valid(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
-
-    def get_aim_info(self):
-        if self.current_spell is None:
-            return None
-        info = spells.get_aim_info(self.current_spell, self.x + (self.width // 2), self.y + (self.height // 2), self.mouse_x + self.camera_x, self.mouse_y + self.camera_y)
-        return (info[0], (int(info[1][0] - self.camera_x), int(info[1][1] - self.camera_y)))
-
-    def get_aim_radius(self):
-        return spells.get_aim_radius(self.current_spell)
 
     def add_item(self, shortname, quantity=1):
         if shortname in self.inventory.keys():
