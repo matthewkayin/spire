@@ -72,12 +72,15 @@ class Interaction_Damage(Interaction):
 
 
 class Interaction_Stun(Interaction):
-    def __init__(self, tag, source, duration):
+    def __init__(self, tag, source, duration, image_append=""):
         super(Interaction_Stun, self).__init__(tag, source, duration, 0, Interaction.EXTEND_SAME_TAG)
+        self.image_append = image_append
 
     def update(self, dt, target):
         if self.enable_effect:
             target.vx, target.vy = (0, 0)
+            target.image_append = self.image_append
+            resources.load_image(target.image + target.image_append, True)
 
         super(Interaction_Stun, self).update(dt, target)
 
@@ -94,6 +97,8 @@ def load_spell_images():
     resources.load_image("spellbook-ice", True)
     resources.load_image("golem", True)
     resources.load_image("spellbook-golem", True)
+    resources.load_image("thorns", True)
+    resources.load_image("spellbook-thorns", True)
 
 
 def get_by_name(shortname):
@@ -103,6 +108,11 @@ def get_by_name(shortname):
         return Needle()
     elif shortname == "golem":
         return Golem()
+    elif shortname == "thorns":
+        return Thorns()
+    else:
+        print("Error! Spell " + shortname + " hasn't been added to spells.get_by_name()")
+        return None
 
 
 class Spell(entity.Entity):
@@ -352,10 +362,48 @@ class Golem(Spell):
         return [Interaction_Damage("golem_damage", self.source_id, 1)]
 
     def handle_collision(self):
-        return True
+        return
 
     def is_aim_valid(self, start, target):
         return util.get_distance(start, target) <= self.AIM_RADIUS
 
     def get_aim_coords(self, start, target):
         return (target[0] - (self.width // 2), target[1] - (self.height // 2))
+
+
+class Thorns(Spell):
+    # State constants
+    AOE = 3
+
+    AOE_DURATION = 10
+
+    def __init__(self):
+        super(Thorns, self).__init__(["brambles"], 0, 60, 142)
+
+        self.aoe_timer = 0
+
+    def update(self, dt):
+        if self.state == Thorns.AOE:
+            self.aoe_timer += dt
+            if self.aoe_timer >= Thorns.AOE_DURATION:
+                self.end_spell()
+
+        super(Thorns, self).update(dt)
+
+    def cast(self):
+        self.state = Thorns.AOE
+        self.x, self.y = self.get_aim_coords(self.start, self.target)
+        self.handles_collisions = True
+        self.interact = True
+
+    def get_interactions(self):
+        return [Interaction_Damage("thorn_damage", self.source_id, 2, 10), Interaction_Stun("thorn_stun", self.source_id, 60 * 2, "-brambles")]
+
+    def handle_collision(self):
+        return
+
+    def is_aim_valid(self, start, target):
+        return True
+
+    def get_aim_coords(self, start, target):
+        return (start[0] - (self.width // 2), start[1] - (self.height // 2))

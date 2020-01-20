@@ -10,6 +10,7 @@ class Entity():
         image_object = resources.load_image(image, has_alpha)
 
         self.image = image
+        self.image_append = ""
         self.rotation = None
         self.offset_x = 0
         self.offset_y = 0
@@ -46,9 +47,9 @@ class Entity():
     def get_image(self, alpha=255):
         image = None
         if alpha == 255:
-            image = resources.get_image(self.image)
+            image = resources.get_image(self.image + self.image_append)
         else:
-            image = resources.get_fade_image(self.image, alpha)
+            image = resources.get_fade_image(self.image + self.image_append, alpha)
         if self.rotation is None:
             return image
         else:

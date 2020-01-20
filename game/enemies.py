@@ -58,6 +58,7 @@ class Enemy(entity.Entity):
                 vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
                 self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
 
+        self.image_append = ""
         for interaction in self.interactions:
             interaction.update(dt, self)
         self.interactions = [interaction for interaction in self.interactions if not interaction.ended]
