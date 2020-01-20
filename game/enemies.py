@@ -72,13 +72,14 @@ class Enemy(entity.Entity):
             self.freeze_timer = action_value
 
     def add_interaction(self, interaction):
-        if interaction.tag in [interaction.tag for interaciton in self.interactions]:
+        if interaction.tag in [other_interaction.tag for other_interaction in self.interactions]:
             if interaction.duplicate_behavior == spells.Interaction.EXCLUDE_SAME_TAG:
                 return
             elif interaction.duplicate_behavior == spells.Interaction.EXCLUDE_SAME_SOURCE:
                 if interaction.source in [interaction.source for interaction in self.interactions]:
                     return
             elif interaction.duplicate_behavior == spells.Interaction.EXTEND_SAME_TAG:
-                for other_interaction in [other_interaction for other_interaction in self.interactions if other_interaction.tag == interaction.tag]:
-                    other_interaction.reset()
+                for extended_interaction in [ext_interaction for ext_interaction in self.interactions if ext_interaction.tag == interaction.tag]:
+                    extended_interaction.reset()
+                return
         self.interactions.append(interaction)

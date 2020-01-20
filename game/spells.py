@@ -85,6 +85,19 @@ class Interaction_Stun(Interaction):
         super(Interaction_Stun, self).update(dt, target)
 
 
+class Interaction_Slow(Interaction):
+    def __init__(self, tag, source, duration, percent):
+        super(Interaction_Slow, self).__init__(tag, source, duration, 0, Interaction.EXTEND_SAME_TAG)
+        self.percent = percent
+
+    def update(self, dt, target):
+        if self.enable_effect:
+            target.vx *= self.percent
+            target.vy *= self.percent
+
+        super(Interaction_Slow, self).update(dt, target)
+
+
 """
 SPELLS
 """
@@ -241,7 +254,7 @@ class Fire(Spell):
         if self.state == Fire.PROJECTILE:
             if util.get_distance((self.x + self.width // 2, self.y + self.height // 2), self.target) <= 5:
                 self.vx, self.vy = (0, 0)
-                self.x, self.y = self.target[0] - 25, self.target[1] - 25
+                self.x, self.y = self.target[0] - 35, self.target[1] - 35
                 self.interact = True
                 self.image = self.images[1]
                 self.update_rect()
@@ -263,7 +276,7 @@ class Fire(Spell):
         self.state = Fire.PROJECTILE
 
     def get_interactions(self):
-        return [Interaction_Damage("fire_damage", self.source_id, 1, 60)]
+        return [Interaction_Damage("fire_damage", self.source_id, 1, 60), Interaction_Slow("fire_slow", self.source_id, 1, 0.4)]
 
     def handle_collision(self):
         if self.state == Fire.PROJECTILE:
@@ -275,7 +288,7 @@ class Fire(Spell):
         return util.get_distance(start, target) <= self.AIM_RADIUS
 
     def get_aim_coords(self, start, target):
-        return (target[0] - 25, target[1] - 25)
+        return (target[0] - 35, target[1] - 35)
 
 
 class Golem(Spell):
