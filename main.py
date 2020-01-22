@@ -113,6 +113,11 @@ def game():
                                         enemy.add_interaction(interaction)
                                 spell.handle_collision()
                 room.enemies = [enemy for enemy in room.enemies if enemy.health > 0]
+                for spell in player_obj.active_spells:
+                    if spell.handles_collisions:
+                        for collider in room.colliders:
+                            if spell.collides(collider):
+                                spell.handle_collision()
             player_obj.update_camera()
 
         """
@@ -130,7 +135,7 @@ def game():
                 tile_y = tile[2] - player_obj.get_camera_y()
                 if rect_in_screen((tile_x, tile_y, 50, 50)):
                     if isinstance(tile_img, str):
-                        display.blit(resources.load_image(tile_img, False), (tile_x, tile_y))
+                        display.blit(resources.get_image(tile_img, False), (tile_x, tile_y))
                     else:
                         if tile_img[1] != 16:
                             display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
@@ -195,10 +200,9 @@ def game():
 
             if player_obj.fade_alpha == 100:
                 # pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
-                display.blit(resources.load_image("spellwheel", True), ((DISPLAY_WIDTH // 2) - 150, (DISPLAY_HEIGHT // 2) - 150))
+                display.blit(resources.get_image("spellwheel", True), ((DISPLAY_WIDTH // 2) - 150, (DISPLAY_HEIGHT // 2) - 150))
                 for item in player_obj.spellcircle_items:
-                    # pygame.draw.rect(display, RED, item[2], False)
-                    display.blit(resources.get_image(item[0][item[0].index("-") + 1:]), (item[2][0], item[2][1]))
+                    display.blit(resources.get_image(item[0][item[0].index("-") + 1:], True), (item[2][0], item[2][1]))
                     count_surface = font_small.render(str(item[1]), False, BLUE)
                     display.blit(count_surface, ((item[2][0] + int(item[2][2] * 0.8), item[2][1] + int(item[2][3] * 0.8))))
 

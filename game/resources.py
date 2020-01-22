@@ -7,45 +7,22 @@ image_cache = {}
 tileset_cache = {}
 
 
-def load_image(path, has_alpha):
+def get_image(path, has_alpha, alpha=255):
     if path not in image_cache.keys():
         if has_alpha:
             image_cache[path] = pygame.image.load("game/res/" + path + ".png").convert_alpha()
         else:
             image_cache[path] = pygame.image.load("game/res/" + path + ".png").convert()
 
-    return image_cache[path]
+    return_path = path
+    if alpha != 255:
+        return_path = path + "&alpha=" + str(alpha)
+        if return_path not in image_cache.keys():
+            new_image = image_cache[path].copy()
+            new_image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
+            image_cache[return_path] = new_image
 
-
-def get_image(path):
-    if path not in image_cache.keys():
-        print("Error! Image " + path + " has not been loaded in yet!")
-        return None
-
-    return image_cache[path]
-
-
-def create_fade_image(path, alpha):
-    if path not in image_cache.keys():
-        print("Error! You tried to apply transparency to an image that you haven't loaded yet!")
-        return None
-
-    new_path = path + "&alpha=" + str(alpha)
-    if new_path not in image_cache.keys():
-        new_image = image_cache[path].copy()
-        new_image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
-        image_cache[new_path] = new_image
-
-    return image_cache[new_path]
-
-
-def get_fade_image(path, alpha):
-    new_path = path + "&alpha=" + str(alpha)
-    if new_path not in image_cache.keys():
-        print("Error! Tried to get a faded image that hasn't been created yet!")
-        return None
-
-    return image_cache[new_path]
+    return image_cache[return_path]
 
 
 def rotate(image, angle, origin_pos=None):

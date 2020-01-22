@@ -10,9 +10,6 @@ class Player(entity.Entity):
     def __init__(self, DISPLAY_WIDTH, DISPLAY_HEIGHT):
         super(Player, self).__init__("player-idle", True)
 
-        resources.load_image("heart", True)
-        spells.load_spell_images()
-
         self.SCREEN_CENTER_X = DISPLAY_WIDTH // 2
         self.SCREEN_CENTER_Y = DISPLAY_HEIGHT // 2
         self.CAMERA_OFFSET_X = (self.width // 2) - self.SCREEN_CENTER_X
@@ -192,7 +189,7 @@ class Player(entity.Entity):
         return int(round(self.camera_y))
 
     def get_heart_image(self):
-        return resources.get_image("heart")
+        return resources.get_image("heart", True)
 
     def begin_spellcast(self):
         if self.pending_spell is None:

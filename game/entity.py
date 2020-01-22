@@ -7,10 +7,11 @@ class Entity():
     """
 
     def __init__(self, image, has_alpha):
-        image_object = resources.load_image(image, has_alpha)
+        image_object = resources.get_image(image, has_alpha)
 
         self.image = image
         self.image_append = ""
+        self.has_alpha = has_alpha
         self.rotation = None
         self.offset_x = 0
         self.offset_y = 0
@@ -32,7 +33,7 @@ class Entity():
         return int(round(self.y)) + self.offset_y
 
     def update_rect(self):
-        image_obj = resources.get_image(self.image)
+        image_obj = resources.get_image(self.image, self.has_alpha)
         self.width, self.height = image_obj.get_rect().width, image_obj.get_rect().height
 
     def get_rect(self):
@@ -47,24 +48,12 @@ class Entity():
     def get_image(self, alpha=255):
         image = None
         if alpha == 255:
-            image = resources.get_image(self.image + self.image_append)
+            image = resources.get_image(self.image + self.image_append, self.has_alpha)
         else:
-            image = resources.get_fade_image(self.image + self.image_append, alpha)
+            image = resources.get_image(self.image + self.image_append, self.has_alpha, alpha)
         if self.rotation is None:
             return image
         else:
             image, offset = resources.rotate(image, self.rotation)
             self.offset_x, self.offset_y = offset
             return image
-        """
-        if self.rotation is None:
-            return resources.get_image(self.image)
-        elif self.image == "bolt":
-            image, offset = resources.create_lightning(self.length, self.rotation - 90)
-            self.offset_x, self.offset_y = offset
-            return image
-        else:
-            image, offset = resources.rotate(resources.get_image(self.image), self.rotation)
-            self.offset_x, self.offset_y = offset
-            return image
-        """

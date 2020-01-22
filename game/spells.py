@@ -1,5 +1,5 @@
 # import math
-from . import entity, resources, util
+from . import entity, util
 
 
 """
@@ -80,7 +80,6 @@ class Interaction_Stun(Interaction):
         if self.enable_effect:
             target.vx, target.vy = (0, 0)
             target.image_append = self.image_append
-            resources.load_image(target.image + target.image_append, True)
 
         super(Interaction_Stun, self).update(dt, target)
 
@@ -103,17 +102,6 @@ SPELLS
 """
 
 
-def load_spell_images():
-    resources.load_image("fire", True)
-    resources.load_image("spellbook-fire", True)
-    resources.load_image("ice", True)
-    resources.load_image("spellbook-ice", True)
-    resources.load_image("golem", True)
-    resources.load_image("spellbook-golem", True)
-    resources.load_image("thorns", True)
-    resources.load_image("spellbook-thorns", True)
-
-
 def get_by_name(shortname):
     if shortname == "fire":
         return Fire()
@@ -126,6 +114,10 @@ def get_by_name(shortname):
     else:
         print("Error! Spell " + shortname + " hasn't been added to spells.get_by_name()")
         return None
+
+
+# TODO handle spell projectile collisions when they exit the room without hitting the walls
+# TODO prevent golem from spawn outside map
 
 
 class Spell(entity.Entity):
@@ -150,11 +142,6 @@ class Spell(entity.Entity):
         self.interact = False
         self.handles_collisions = False
         self.requests_enemies = False
-
-        for image in images:
-            resources.load_image(image, True)
-        resources.create_fade_image(images[aim_image_index], 128)  # For when aiming, always use first image at alpha 128
-        # The shortname is exclusively used to image loading
 
         self.images = images
         self.image = self.images[aim_image_index]
