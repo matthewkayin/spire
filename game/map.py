@@ -8,6 +8,8 @@ class Map():
         self.rooms.append(Room(0, 0, "empty-one"))
         self.rooms.append(Room(0, -600, "empty-two"))
         self.rooms[0].enemies.append(enemies.Enemy(500, 10))
+        self.rooms[0].enemies.append(enemies.Enemy(400, 10))
+        self.current_room = 0
         self.current_room = 0
         self.previous_room = -1
 

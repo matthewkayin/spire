@@ -32,7 +32,6 @@ class Player(entity.Entity):
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
-        self.add_item("spellbook-ice", 3)
         self.add_item("spellbook-golem", 3)
         self.add_item("spellbook-thorns", 3)
 
@@ -121,9 +120,12 @@ class Player(entity.Entity):
                 if self.pending_spell.state == spells.Spell.CHARGING and (self.vx != 0 or self.vy != 0):
                     self.cancel_spellcast()
                 elif self.pending_spell.state == spells.Spell.CAST_READY:
-                    self.remove_item("spellbook-" + self.recent_spell)
-                    if "spellbook-" + self.recent_spell not in self.inventory.keys():
-                        self.recent_spell = None
+                    if self.recent_spell == "needle":
+                        self.health -= 1
+                    else:
+                        self.remove_item("spellbook-" + self.recent_spell)
+                        if "spellbook-" + self.recent_spell not in self.inventory.keys():
+                            self.recent_spell = None
                     self.pending_spell.cast()
                     self.active_spells.append(self.pending_spell)
                     self.pending_spell = None
@@ -232,6 +234,9 @@ class Player(entity.Entity):
         for item in self.inventory.keys():
             if item.startswith("spellbook-"):
                 castable_spells.append((item, self.inventory[item]))
+        if self.health >= 1:
+            needle_charges = int(self.health)
+            castable_spells.append(("spellbook-needle", needle_charges))
 
         if len(castable_spells) == 0:
             return

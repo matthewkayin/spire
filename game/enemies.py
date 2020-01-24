@@ -28,7 +28,7 @@ class Enemy(entity.Entity):
         self.hurtbox = None
         self.POWER = 0.5
 
-        self.health = 3
+        self.health = 10
         self.interactions = []
 
     def update(self, dt, player_rect):

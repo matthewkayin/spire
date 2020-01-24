@@ -100,6 +100,24 @@ class Interaction_Slow(Interaction):
         super(Interaction_Slow, self).update(dt, target)
 
 
+class Interaction_Plague(Interaction):
+    def __init__(self, tag, source, duration, health_cap):
+        super(Interaction_Plague, self).__init__(tag, source, duration, 10, Interaction.EXCLUDE_SAME_SOURCE)
+        self.health_cap = health_cap
+        self.checked_target = False
+
+    def update(self, dt, target):
+        if not self.checked_target:
+            if target.health >= self.health_cap:
+                self.duration_timer = self.DURATION
+                self.end_lag_timer = self.END_LAG
+                self.ended = True
+        if self.state == Interaction.END_LAGGING:
+            target.health = 0
+
+        super(Interaction_Plague, self).update(dt, target)
+
+
 """
 SPELLS
 """
@@ -108,7 +126,7 @@ SPELLS
 def get_by_name(shortname):
     if shortname == "fire":
         return Fire()
-    elif shortname == "ice":
+    elif shortname == "needle":
         return Needle()
     elif shortname == "golem":
         return Golem()
@@ -196,11 +214,24 @@ class Spell(entity.Entity):
 class Needle(Spell):
     # State constants
     PROJECTILE = 3
+    AOE = 4
 
     PROJECTILE_SPEED = 3
+    AOE_DURATION = 30
 
     def __init__(self):
-        super(Needle, self).__init__(["icicle"], 0, 20, 50)
+        super(Needle, self).__init__(["icicle", "plague-cloud"], 0, 20, 50)
+
+        self.aoe_timer = 0
+        self.applied_needle_damage = False
+
+    def update(self, dt):
+        if self.state == Needle.AOE:
+            self.aoe_timer += dt
+            if self.aoe_timer >= Needle.AOE_DURATION:
+                self.end_spell()
+
+        super(Needle, self).update(dt)
 
     def cast(self):
         if self.state == Spell.CAST_READY:
@@ -212,11 +243,20 @@ class Needle(Spell):
             self.state = Needle.PROJECTILE
 
     def get_interactions(self):
-        return [Interaction_Damage("blood_damage", self.source_id, 3)]
+        if self.state == Needle.PROJECTILE and not self.applied_needle_damage:
+            return [Interaction_Damage("blood_damage", self.source_id, 3), Interaction_Plague("needle_plague", self.source_id, 60 * 30, 20)]
+            self.applied_needle_damage = True
+        else:
+            return [Interaction_Plague("needle_plague", self.source_id, 60 * 30, 20)]
 
     def handle_collision(self):
         if self.state == Needle.PROJECTILE:
-            self.end_spell()
+            self.vx, self.vy = (0, 0)
+            self.rotation = None
+            self.image = self.images[1]
+            self.update_rect()
+            self.x, self.y = (self.x - (self.width // 2), self.y - (self.height // 2))
+            self.state = Needle.AOE
 
     def is_aim_valid(self, start, target):
         return True
@@ -234,12 +274,12 @@ class Fire(Spell):
     AOE = 4
 
     PROJECTILE_SPEED = 3
+    AOE_DURATION = 60 * 3
 
     def __init__(self):
         super(Fire, self).__init__(["projectile-fire", "explosion"], 1, 60, 250)
 
         self.aoe_timer = 0
-        self.AOE_DURATION = 60 * 3
 
     def update(self, dt):
         if self.state == Fire.PROJECTILE:
@@ -252,7 +292,7 @@ class Fire(Spell):
                 self.state = Fire.AOE
         elif self.state == Fire.AOE:
             self.aoe_timer += dt
-            if self.aoe_timer >= self.AOE_DURATION:
+            if self.aoe_timer >= Fire.AOE_DURATION:
                 self.end_spell()
 
         super(Fire, self).update(dt)
