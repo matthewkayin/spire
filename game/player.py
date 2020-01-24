@@ -52,6 +52,7 @@ class Player(entity.Entity):
     def handle_input(self, input_queue, input_states, mouse_x, mouse_y):
         self.mouse_x = mouse_x
         self.mouse_y = mouse_y
+        self.click_interaction = None
         self.update_velocity = False
 
         while len(input_queue) != 0:
@@ -109,6 +110,8 @@ class Player(entity.Entity):
                         if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
                             self.begin_item_consume(item[0])
                             break
+                elif self.ui_state == self.NONE and self.ui_substate == self.NONE:
+                    self.click_interaction = (self.mouse_x, self.mouse_y)
             elif event == ("right click", True):
                 if self.ui_state == self.INVENTORY:
                     for item in self.inventory_ui_items:

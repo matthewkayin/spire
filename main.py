@@ -1,5 +1,7 @@
 from game import player, resources, map, util
 import pygame
+import random
+import math
 import sys
 import os
 
@@ -95,6 +97,7 @@ def game():
         BEGIN UPDATING
         """
         player_obj.update(dt)
+        player_interaction = player_obj.click_interaction
         if player_obj.ui_substate == player_obj.AIM_SPELL:
             if player_obj.pending_spell.NEEDS_ROOM_AIM:
                 pending_spell_rect = (player_obj.mouse_x + player_obj.get_camera_x(), player_obj.mouse_y + player_obj.get_camera_y(), player_obj.pending_spell.width, player_obj.pending_spell.height)
@@ -132,6 +135,33 @@ def game():
                         for collider in room.colliders:
                             if spell.collides(collider):
                                 spell.handle_collision()
+                for chest in room.chests:
+                    player_obj.check_collision(dt, chest[0])
+                    if not chest[1]:
+                        if player_interaction is not None:
+                            if util.point_in_rect((mouse_x + player_obj.get_camera_x(), mouse_y + player_obj.get_camera_y()), chest[0]):
+                                if util.get_distance(player_obj.get_center(), util.get_center(chest[0])) <= 50:
+                                    chest[1] = True
+                                    old_spawn_degrees = []
+                                    for item in chest[2]:
+                                        spawn_degree = 0
+                                        spawn_degree_okay = False
+                                        while not spawn_degree_okay:
+                                            spawn_degree = random.randint(0, 360)
+                                            spawn_degree_okay = True
+                                            for degree in old_spawn_degrees:
+                                                if abs(degree - spawn_degree) < 10:
+                                                    spawn_degree_okay = False
+                                        old_spawn_degrees.append(spawn_degree)
+                                        distance = 70
+                                        x_dist = int(distance * math.cos(math.radians(spawn_degree)))
+                                        y_dist = int(distance * math.sin(math.radians(spawn_degree)))
+                                        room.items.append([item[0], item[1], (x_dist + util.get_center(chest[0])[0], y_dist + util.get_center(chest[0])[1])])
+                for item in room.items:
+                    if player_obj.collides((item[2][0], item[2][1], 20, 20)):
+                        player_obj.add_item(item[0], item[1])
+                        item[1] = 0
+                room.items = [item for item in room.items if item[1] != 0]
             player_obj.update_camera()
 
         """
@@ -153,6 +183,13 @@ def game():
                     else:
                         if tile_img[1] != 16:
                             display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
+            for chest in room.chests:
+                if chest[1]:
+                    display.blit(resources.get_image("chest-open", True), (chest[0][0] - player_obj.get_camera_x(), chest[0][1] - player_obj.get_camera_y()))
+                else:
+                    display.blit(resources.get_image("chest", True), (chest[0][0] - player_obj.get_camera_x(), chest[0][1] - player_obj.get_camera_y()))
+            for item in room.items:
+                display.blit(resources.get_image(item[0], True), (item[2][0] - player_obj.get_camera_x(), item[2][1] - player_obj.get_camera_y()))
         """
         RENDER SPELLS
         """

@@ -8,6 +8,7 @@ class Map():
         self.rooms.append(Room(0, 0, "empty-one"))
         self.rooms.append(Room(0, -600, "empty-two"))
         self.rooms[1].enemies.append(enemies.Enemy(500, 10))
+        self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
         self.current_room = 0
         self.current_room = 0
         self.previous_room = -1
@@ -47,6 +48,8 @@ class Room():
         self.width = 12 * 50
         self.height = 12 * 50
         self.enemies = []
+        self.items = []
+        self.chests = []
 
         if generator == "empty-one":
             self.create_empty_one()
