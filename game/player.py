@@ -27,6 +27,7 @@ class Player(entity.Entity):
         self.active_spells = []
         self.pending_spell = None
         self.recent_spell = None
+        self.has_room_aim = False
 
         self.inventory = {}
         self.add_item("spellbook-fire", 3)
@@ -93,7 +94,7 @@ class Player(entity.Entity):
                             self.recent_spell = item[0][item[0].index("-") + 1:]
                             self.pending_spell = spells.get_by_name(self.recent_spell)
                 elif self.ui_substate == self.AIM_SPELL and (self.ui_state == self.NONE or self.ui_state == self.SPELLWHEEL):
-                    if self.pending_spell.is_aim_valid(self.get_center(), self.get_aim()):
+                    if self.pending_spell.is_aim_valid(self.get_center(), self.get_aim()) and (self.has_room_aim if self.pending_spell.NEEDS_ROOM_AIM else True):
                         self.begin_spellcast()
                         self.ui_state = self.NONE
                         self.ui_substate = self.NONE
@@ -139,6 +140,9 @@ class Player(entity.Entity):
                 self.fade_alpha += dt * 10
                 if self.fade_alpha > 100:
                     self.fade_alpha = 100
+
+        if self.ui_substate == self.AIM_SPELL:
+            self.has_room_aim = False
 
     def update_camera(self):
         """

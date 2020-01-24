@@ -127,13 +127,14 @@ class Spell(entity.Entity):
     CHARGING = 1
     CAST_READY = 2
 
-    def __init__(self, images, aim_image_index, charge_time, aim_radius):
+    def __init__(self, images, aim_image_index, charge_time, aim_radius, needs_room_aim=False):
         super(Spell, self).__init__(images[aim_image_index], True)
 
         self.state = Spell.AIMING
         self.charge_timer = 0
         self.CHARGE_TIME = charge_time
         self.AIM_RADIUS = aim_radius
+        self.NEEDS_ROOM_AIM = needs_room_aim
 
         self.start = None
         self.target = None
@@ -289,7 +290,7 @@ class Golem(Spell):
     BULLET_SPEED = 3
 
     def __init__(self):
-        super(Golem, self).__init__(["golem-guy", "projectile-rock"], 0, 60, 200)
+        super(Golem, self).__init__(["golem-guy", "projectile-rock"], 0, 60, 200, True)
 
         self.golem_timer = 0
         self.fire_timer = 0
