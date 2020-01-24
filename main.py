@@ -109,6 +109,7 @@ def game():
                     player_obj.check_collision(dt, collider)
                 for enemy in room.enemies:
                     enemy.update(dt, player_obj.get_rect())
+                    player_obj.check_collision(dt, enemy.get_rect())
                     if enemy.deal_damage:
                         if player_obj.collides(enemy.hurtbox):
                             player_obj.health -= enemy.POWER
@@ -196,6 +197,8 @@ def game():
 
         for i in range(0, player_obj.health):
             display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
+        if player_obj.recent_spell is not None:
+            display.blit(resources.get_image(player_obj.recent_spell, True), (DISPLAY_WIDTH - 36 - 5, 5))
 
         """
         RENDER SPELLWHEEL UI

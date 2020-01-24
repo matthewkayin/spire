@@ -104,6 +104,7 @@ class Player(entity.Entity):
                 if self.ui_state == self.NONE:
                     if self.ui_substate == self.NONE and self.recent_spell is not None:
                         self.ui_substate = self.AIM_SPELL
+                        self.pending_spell = spells.get_by_name(self.recent_spell)
                     elif self.ui_substate == self.AIM_SPELL:
                         self.ui_substate = self.NONE
 

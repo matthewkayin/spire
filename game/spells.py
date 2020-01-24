@@ -80,6 +80,8 @@ class Interaction_Stun(Interaction):
         if self.enable_effect:
             target.vx, target.vy = (0, 0)
             target.image_append = self.image_append
+            target.attacking = False
+            target.deal_damage = False
 
         super(Interaction_Stun, self).update(dt, target)
 
@@ -93,6 +95,7 @@ class Interaction_Slow(Interaction):
         if self.enable_effect:
             target.vx *= self.percent
             target.vy *= self.percent
+            target.attack_speed_percent = self.percent
 
         super(Interaction_Slow, self).update(dt, target)
 

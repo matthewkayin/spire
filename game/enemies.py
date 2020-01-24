@@ -21,6 +21,7 @@ class Enemy(entity.Entity):
         """
         self.attacking = False
         self.attack_timer = 0
+        self.attack_speed_percent = 1
         self.ATTACK_SPEED = 20
 
         self.deal_damage = False
@@ -38,7 +39,7 @@ class Enemy(entity.Entity):
 
         # If we're in an attack windup...
         if self.attacking:
-            self.attack_timer += dt
+            self.attack_timer += (dt * self.attack_speed_percent)
             # If the attack windup has finished, set the variables needed for us to deal the player damage in the update loop
             if self.attack_timer >= self.ATTACK_SPEED:
                 self.deal_damage = True
@@ -57,6 +58,8 @@ class Enemy(entity.Entity):
                 # Vetorize movement relative to player
                 vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
                 self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
+
+        self.attack_speed_percent = 1  # Reset attack speed each update in case it was affected by a slow
 
         self.image_append = ""
         for interaction in self.interactions:
