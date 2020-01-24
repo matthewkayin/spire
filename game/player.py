@@ -1,5 +1,5 @@
 import math
-from . import entity, resources, util, spells
+from . import entity, util, spells
 
 
 class Player(entity.Entity):
@@ -23,6 +23,7 @@ class Player(entity.Entity):
         self.SPEED = 2
 
         self.health = 3
+        self.max_health = 3
 
         self.active_spells = []
         self.pending_spell = None
@@ -192,9 +193,6 @@ class Player(entity.Entity):
 
     def get_camera_y(self):
         return int(round(self.camera_y))
-
-    def get_heart_image(self):
-        return resources.get_image("heart", True)
 
     def begin_spellcast(self):
         if self.pending_spell is None:

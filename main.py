@@ -1,4 +1,4 @@
-from game import player, resources, map
+from game import player, resources, map, util
 import pygame
 import sys
 import os
@@ -70,6 +70,11 @@ YELLOW = (255, 255, 0)
 # Font variables
 font_small = pygame.font.SysFont("Serif", 11)
 
+# Game states
+EXIT = -1
+MAIN_LOOP = 0
+DEATH_SCREEN = 1
+
 
 def game():
     player_obj = player.Player(DISPLAY_WIDTH, DISPLAY_HEIGHT)
@@ -80,6 +85,7 @@ def game():
     resources.load_tileset("tileset")
 
     running = True
+    next_state = EXIT
 
     while running:
         handle_input()
@@ -195,8 +201,16 @@ def game():
                         if tile_img[1] == 16:
                             display.blit(resources.get_tile(tile_img[0], tile_img[1]), (tile_x, tile_y))
 
-        for i in range(0, player_obj.health):
-            display.blit(player_obj.get_heart_image(), (5 + (30 * i), 5))
+        for i in range(0, player_obj.max_health):
+            x_coord = 5 + (30 * i)
+            y_coord = 5
+            if player_obj.health == i + 0.5:
+                display.blit(resources.get_subimage("heart", True, (0, 0, 10, 20)), (x_coord, y_coord))
+                display.blit(resources.get_subimage("heart-empty", True, (10, 0, 10, 20)), (x_coord + 10, y_coord))
+            elif player_obj.health > i:
+                display.blit(resources.get_image("heart", True), (x_coord, y_coord))
+            else:
+                display.blit(resources.get_image("heart-empty", True), (x_coord, y_coord))
         if player_obj.recent_spell is not None:
             display.blit(resources.get_image(player_obj.recent_spell, True), (DISPLAY_WIDTH - 36 - 5, 5))
 
@@ -207,23 +221,77 @@ def game():
             fade_surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.SRCALPHA)
             fade_surface.fill((0, 0, 0, player_obj.fade_alpha))
             display.blit(fade_surface, (0, 0))
-
             if player_obj.fade_alpha == 100:
-                # pygame.draw.circle(display, WHITE, (DISPLAY_WIDTH // 2, DISPLAY_HEIGHT // 2), 150, 50)
                 display.blit(resources.get_image("spellwheel", True), ((DISPLAY_WIDTH // 2) - 150, (DISPLAY_HEIGHT // 2) - 150))
                 for item in player_obj.spellcircle_items:
                     display.blit(resources.get_image(item[0][item[0].index("-") + 1:], True), (item[2][0], item[2][1]))
                     count_surface = font_small.render(str(item[1]), False, BLUE)
                     display.blit(count_surface, ((item[2][0] + int(item[2][2] * 0.8), item[2][1] + int(item[2][3] * 0.8))))
+        if debug_mode or show_fps:
+            render_fps()
+
+        flip_display()
+        # pygame.display.flip()
+
+        tick()
+
+        if player_obj.health <= 0:
+            running = False
+            next_state = DEATH_SCREEN
+
+    if next_state == DEATH_SCREEN:
+        death_screen()
+
+
+def death_screen():
+    continue_button_rect = ((DISPLAY_WIDTH // 2) - 50, (DISPLAY_HEIGHT // 2) + 40, 100, 20)
+    exit_button_rect = ((DISPLAY_WIDTH // 2) - 50, (DISPLAY_HEIGHT // 2) + 70, 100, 20)
+    death_message = font_small.render("You Heckin Died", False, WHITE)
+    continue_text = font_small.render("Play Again", False, WHITE)
+    continue_text_x = continue_button_rect[0] + (continue_button_rect[2] // 2) - (continue_text.get_width() // 2)
+    continue_text_y = continue_button_rect[1] + (continue_button_rect[3] // 2) - (continue_text.get_height() // 2)
+    exit_text = font_small.render("Yeet", False, WHITE)
+    exit_text_x = exit_button_rect[0] + (exit_button_rect[2] // 2) - (exit_text.get_width() // 2)
+    exit_text_y = exit_button_rect[1] + (exit_button_rect[3] // 2) - (exit_text.get_height() // 2)
+
+    running = True
+    next_state = EXIT
+
+    while running:
+        hovered_button = 0
+        if util.point_in_rect((mouse_x, mouse_y), continue_button_rect):
+            hovered_button = 1
+        elif util.point_in_rect((mouse_x, mouse_y), exit_button_rect):
+            hovered_button = 2
+
+        handle_input()
+        while len(input_queue) != 0:
+            event = input_queue.pop()
+            if event == ("left click", True):
+                if hovered_button == 1:
+                    next_state = MAIN_LOOP
+                    running = False
+                elif hovered_button == 2:
+                    next_state = EXIT
+                    running = False
+
+        clear_display()
+
+        display.blit(death_message, ((DISPLAY_WIDTH // 2) - (death_message.get_width() // 2), (DISPLAY_HEIGHT // 2) - (death_message.get_height() // 2) - 100))
+        pygame.draw.rect(display, WHITE, continue_button_rect, hovered_button != 1)
+        display.blit(continue_text, (continue_text_x, continue_text_y))
+        pygame.draw.rect(display, WHITE, exit_button_rect, hovered_button != 2)
+        display.blit(exit_text, (exit_text_x, exit_text_y))
 
         if debug_mode or show_fps:
             render_fps()
 
         flip_display()
-        pygame.display.flip()
 
         tick()
-    pygame.quit()
+
+    if next_state == MAIN_LOOP:
+        game()
 
 
 def handle_input():
@@ -319,3 +387,4 @@ if __name__ == "__main__":
     before_time = pygame.time.get_ticks()
     before_sec = before_time
     game()
+    pygame.quit()

@@ -26,7 +26,7 @@ class Enemy(entity.Entity):
 
         self.deal_damage = False
         self.hurtbox = None
-        self.POWER = 1
+        self.POWER = 0.5
 
         self.health = 3
         self.interactions = []

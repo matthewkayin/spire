@@ -25,6 +25,10 @@ def get_image(path, has_alpha, alpha=255):
     return image_cache[return_path]
 
 
+def get_subimage(path, has_alpha, subrect):
+    return get_image(path, has_alpha).subsurface(pygame.Rect(subrect))
+
+
 def rotate(image, angle, origin_pos=None):
     if origin_pos is None:
         origin_pos = image.get_rect().center
