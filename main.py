@@ -213,6 +213,8 @@ def game():
                 display.blit(resources.get_image("heart-empty", True), (x_coord, y_coord))
         if player_obj.recent_spell is not None:
             display.blit(resources.get_image(player_obj.recent_spell, True), (DISPLAY_WIDTH - 36 - 5, 5))
+        if player_obj.recent_item is not None:
+            display.blit(pygame.transform.scale(resources.get_image(player_obj.recent_item, True), (36, 36)), (DISPLAY_WIDTH - 36 - 5 - 36 - 5, 5))
 
         """
         RENDER SPELLWHEEL UI
@@ -227,6 +229,32 @@ def game():
                     display.blit(resources.get_image(item[0][item[0].index("-") + 1:], True), (item[2][0], item[2][1]))
                     count_surface = font_small.render(str(item[1]), False, BLUE)
                     display.blit(count_surface, ((item[2][0] + int(item[2][2] * 0.8), item[2][1] + int(item[2][3] * 0.8))))
+        """
+        RENDER INVENTORY UI
+        """
+        if player_obj.ui_state == player_obj.INVENTORY:
+            ICON_SIZE = 40
+            ICON_RENDER_SIZE = 36
+            RENDER_OFFSET = (ICON_SIZE - ICON_RENDER_SIZE) // 2
+            INVENTORY_ROWS = 3
+            INVENTORY_COLUMNS = 4
+            INVENTORY_WIDTH = ICON_SIZE * INVENTORY_COLUMNS
+            INVENTORY_HEIGHT = ICON_SIZE * INVENTORY_ROWS
+            inventory_rect = ((640 // 2) - (INVENTORY_WIDTH // 2), (360 // 2) - (INVENTORY_HEIGHT // 2), INVENTORY_WIDTH, INVENTORY_HEIGHT)
+            pygame.draw.rect(display, WHITE, inventory_rect, True)
+            for i in range(1, INVENTORY_ROWS):
+                pygame.draw.line(display, WHITE, (inventory_rect[0], inventory_rect[1] + (i * ICON_SIZE)), (inventory_rect[0] + inventory_rect[2] - 1, inventory_rect[1] + (i * ICON_SIZE)))
+            for i in range(1, INVENTORY_COLUMNS):
+                pygame.draw.line(display, WHITE, (inventory_rect[0] + (i * ICON_SIZE), inventory_rect[1]), (inventory_rect[0] + (i * ICON_SIZE), inventory_rect[1] + inventory_rect[3] - 1))
+            item_coords = (0, 0)
+            for name in player_obj.inventory.keys():
+                display.blit(pygame.transform.scale(resources.get_image(name, True), (ICON_RENDER_SIZE, ICON_RENDER_SIZE)), (inventory_rect[0] + item_coords[0] + RENDER_OFFSET, inventory_rect[1] + item_coords[1] + RENDER_OFFSET))
+                count_surface = font_small.render(str(player_obj.inventory[name]), False, WHITE)
+                display.blit(count_surface, (inventory_rect[0] + item_coords[0] + RENDER_OFFSET + int(ICON_RENDER_SIZE * 0.8), inventory_rect[1] + item_coords[1] + RENDER_OFFSET + int(ICON_RENDER_SIZE * 0.8)))
+                item_coords = (item_coords[0] + ICON_SIZE, item_coords[1])
+                if item_coords[0] >= INVENTORY_WIDTH:
+                    item_coords = (0, item_coords[1] + ICON_SIZE)
+
         if debug_mode or show_fps:
             render_fps()
 
@@ -318,6 +346,10 @@ def handle_input():
                 input_queue.append(("spellwheel", True))
             elif event.key == pygame.K_q:
                 input_queue.append(("quickcast", True))
+            elif event.key == pygame.K_i:
+                input_queue.append(("inventory", True))
+            elif event.key == pygame.K_e:
+                input_queue.append(("quickitem", True))
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 input_queue.append(("player up", False))
@@ -334,6 +366,8 @@ def handle_input():
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
                 input_queue.append(("left click", True))
+            elif event.button == pygame.BUTTON_RIGHT:
+                input_queue.append(("right click", True))
         elif event.type == pygame.MOUSEMOTION:
             mouse_pos = pygame.mouse.get_pos()
             mouse_x = int(mouse_pos[0] / SCALE)

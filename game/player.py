@@ -31,13 +31,17 @@ class Player(entity.Entity):
         self.has_room_aim = False
 
         self.inventory = {}
+        self.inventory_ui_items = []
+        self.recent_item = None
         self.add_item("spellbook-fire", 3)
         self.add_item("spellbook-golem", 3)
         self.add_item("spellbook-thorns", 3)
+        self.add_item("potion", 3)
 
         # UI state constants
         self.NONE = 0
         self.SPELLWHEEL = 1
+        self.INVENTORY = 2
         self.CHOOSE_SPELL = 1
         self.AIM_SPELL = 2
         self.ui_state = self.NONE
@@ -98,8 +102,20 @@ class Player(entity.Entity):
                         self.begin_spellcast()
                         self.ui_state = self.NONE
                         self.ui_substate = self.NONE
+                elif self.ui_state == self.INVENTORY:
+                    for item in self.inventory_ui_items:
+                        if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
+                            self.set_recent_item(item[0])
+            elif event == ("right click", True):
+                if self.ui_state == self.INVENTORY:
+                    for item in self.inventory_ui_items:
+                        if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
+                            self.consume_item(item[0])
+                            break
             elif event == ("spellwheel", True):
                 self.toggle_spellwheel()
+            elif event == ("inventory", True):
+                self.toggle_inventory()
             elif event == ("quickcast", True):
                 if self.ui_state == self.NONE:
                     if self.ui_substate == self.NONE and self.recent_spell is not None:
@@ -107,6 +123,9 @@ class Player(entity.Entity):
                         self.pending_spell = spells.get_by_name(self.recent_spell)
                     elif self.ui_substate == self.AIM_SPELL:
                         self.ui_substate = self.NONE
+            elif event == ("quickitem", True):
+                if self.recent_item is not None:
+                    self.consume_item(self.recent_item)
 
     def update(self, dt):
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
@@ -218,6 +237,16 @@ class Player(entity.Entity):
             self.make_spellcircle_items()
         elif self.ui_state == self.SPELLWHEEL:
             self.ui_state = self.NONE
+            self.ui_substate = self.NONE
+
+    def toggle_inventory(self):
+        if self.ui_state == self.NONE:
+            self.ui_state = self.INVENTORY
+            self.ui_substate = self.NONE
+            self.make_inventory_ui_items()
+        elif self.ui_state == self.INVENTORY:
+            self.ui_state = self.NONE
+            self.ui_substate = self.NONE
 
     def get_spellcircle_coords(self, degree):
         ITEM_SIZE = 36
@@ -249,6 +278,31 @@ class Player(entity.Entity):
             entry.append(self.get_spellcircle_coords(90 + (i * degree_padding)))
             self.spellcircle_items.append(entry)
 
+    def make_inventory_ui_items(self):
+        self.inventory_ui_items = []
+
+        ICON_SIZE = 40
+        ICON_RENDER_SIZE = 36
+        RENDER_OFFSET = (ICON_SIZE - ICON_RENDER_SIZE) // 2
+        INVENTORY_ROWS = 3
+        INVENTORY_COLUMNS = 4
+        INVENTORY_WIDTH = ICON_SIZE * INVENTORY_COLUMNS
+        INVENTORY_HEIGHT = ICON_SIZE * INVENTORY_ROWS
+        inventory_rect = ((640 // 2) - (INVENTORY_WIDTH // 2), (360 // 2) - (INVENTORY_HEIGHT // 2), INVENTORY_WIDTH, INVENTORY_HEIGHT)
+
+        item_coords = (0, 0)
+        for name in self.inventory.keys():
+            self.inventory_ui_items.append((name, (inventory_rect[0] + item_coords[0] + RENDER_OFFSET, inventory_rect[1] + item_coords[1] + RENDER_OFFSET, ICON_SIZE, ICON_SIZE)))
+            item_coords = (item_coords[0] + ICON_SIZE, item_coords[1])
+            if item_coords[0] >= INVENTORY_WIDTH:
+                item_coords = (0, item_coords[1] + ICON_SIZE)
+
+    def set_recent_item(self, shortname):
+        if shortname.startswith("spellbook-"):
+            return
+        else:
+            self.recent_item = shortname
+
     def add_item(self, shortname, quantity=1):
         if shortname in self.inventory.keys():
             self.inventory[shortname] += quantity
@@ -263,3 +317,14 @@ class Player(entity.Entity):
         self.inventory[shortname] -= quantity
         if self.inventory[shortname] <= 0:
             self.inventory.pop(shortname)
+
+    def consume_item(self, shortname):
+        if shortname.startswith("spellbook-"):
+            return
+
+        if shortname == "potion":
+            self.health = self.max_health
+
+        self.remove_item(shortname)
+        if self.recent_item not in self.inventory.keys():
+            self.recent_item = None
