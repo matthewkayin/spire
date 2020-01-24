@@ -33,6 +33,8 @@ class Player(entity.Entity):
         self.inventory = {}
         self.inventory_ui_items = []
         self.recent_item = None
+        self.item_use_timer = -1
+        self.ITEM_USE_TIME = 20
         self.add_item("spellbook-fire", 3)
         self.add_item("spellbook-golem", 3)
         self.add_item("spellbook-thorns", 3)
@@ -105,13 +107,13 @@ class Player(entity.Entity):
                 elif self.ui_state == self.INVENTORY:
                     for item in self.inventory_ui_items:
                         if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
-                            self.set_recent_item(item[0])
+                            self.begin_item_consume(item[0])
+                            break
             elif event == ("right click", True):
                 if self.ui_state == self.INVENTORY:
                     for item in self.inventory_ui_items:
                         if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
-                            self.consume_item(item[0])
-                            break
+                            self.set_recent_item(item[0])
             elif event == ("spellwheel", True):
                 self.toggle_spellwheel()
             elif event == ("inventory", True):
@@ -125,7 +127,7 @@ class Player(entity.Entity):
                         self.ui_substate = self.NONE
             elif event == ("quickitem", True):
                 if self.recent_item is not None:
-                    self.consume_item(self.recent_item)
+                    self.begin_item_consume(self.recent_item)
 
     def update(self, dt):
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
@@ -151,6 +153,15 @@ class Player(entity.Entity):
                 else:
                     # It's important to put the update in the else otherwise we will update the spell twice in one update
                     self.pending_spell.update(dt)
+
+            if self.item_use_timer != -1:
+                if self.vx != 0 or self.vy != 0:
+                    self.cancel_item_use()
+                else:
+                    self.item_use_timer += dt
+                    if self.item_use_timer >= self.ITEM_USE_TIME:
+                        self.item_use_timer = -1
+                        self.consume_item(self.recent_item)
 
             for spell in self.active_spells:
                 spell.update(dt)
@@ -226,6 +237,8 @@ class Player(entity.Entity):
     def get_chargebar_percentage(self):
         if self.pending_spell is not None and self.pending_spell.state == spells.Spell.CHARGING:
             return (self.pending_spell.charge_timer / self.pending_spell.CHARGE_TIME)
+        elif self.item_use_timer != -1:
+            return (self.item_use_timer / self.ITEM_USE_TIME)
         else:
             return 0
 
@@ -317,6 +330,17 @@ class Player(entity.Entity):
         self.inventory[shortname] -= quantity
         if self.inventory[shortname] <= 0:
             self.inventory.pop(shortname)
+
+    def begin_item_consume(self, shortname):
+        if shortname.startswith("spellbook-"):
+            return
+
+        self.recent_item = shortname
+        self.item_use_timer = 0
+        self.ui_state = self.NONE
+
+    def cancel_item_use(self):
+        self.item_use_timer = -1
 
     def consume_item(self, shortname):
         if shortname.startswith("spellbook-"):
