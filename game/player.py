@@ -30,6 +30,7 @@ class Player(entity.Entity):
         self.impulse_timer = -1
         self.impulse_x, self.impulse_y = (0, 0)
 
+        self.equipped_spellbooks = []
         self.active_spells = []
         self.pending_spell = None
         self.recent_spell = None
@@ -121,7 +122,16 @@ class Player(entity.Entity):
                 if self.ui_state == self.INVENTORY:
                     for item in self.inventory_ui_items:
                         if util.point_in_rect((self.mouse_x, self.mouse_y), item[1]):
-                            self.set_recent_item(item[0])
+                            if item[0].startswith("spellbook-"):
+                                if item[0] in self.equipped_spellbooks:
+                                    self.equipped_spellbooks.remove(item[0])
+                                else:
+                                    self.equipped_spellbooks.append(item[0])
+                            else:
+                                if item[0] == self.recent_item:
+                                    self.recent_item = None
+                                else:
+                                    self.recent_item = item[0]
             elif event == ("spellwheel", True):
                 self.toggle_spellwheel()
             elif event == ("inventory", True):
@@ -154,6 +164,7 @@ class Player(entity.Entity):
                     else:
                         self.remove_item("spellbook-" + self.recent_spell)
                         if "spellbook-" + self.recent_spell not in self.inventory.keys():
+                            self.equipped_spellbooks.remove(self.recent_spell)
                             self.recent_spell = None
                     self.pending_spell.cast()
                     self.active_spells.append(self.pending_spell)
@@ -267,9 +278,8 @@ class Player(entity.Entity):
         self.spellcircle_items = []
 
         castable_spells = []
-        for item in self.inventory.keys():
-            if item.startswith("spellbook-"):
-                castable_spells.append((item, self.inventory[item]))
+        for item in self.equipped_spellbooks:
+            castable_spells.append((item, self.inventory[item]))
         if self.health >= 1:
             needle_charges = int(self.health)
             castable_spells.append(("spellbook-needle", needle_charges))
@@ -303,12 +313,6 @@ class Player(entity.Entity):
             item_coords = (item_coords[0] + ICON_SIZE, item_coords[1])
             if item_coords[0] >= INVENTORY_WIDTH:
                 item_coords = (0, item_coords[1] + ICON_SIZE)
-
-    def set_recent_item(self, shortname):
-        if shortname.startswith("spellbook-"):
-            return
-        else:
-            self.recent_item = shortname
 
     def add_item(self, shortname, quantity=1):
         if shortname in self.inventory.keys():

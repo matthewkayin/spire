@@ -149,6 +149,9 @@ def game():
                                     old_spawn_degrees = []
                                     for item in chest[2]:
                                         spawn_degree = 0
+                                        distance = 70
+                                        x_dist = 0
+                                        y_dist = 0
                                         spawn_degree_okay = False
                                         while not spawn_degree_okay:
                                             spawn_degree = random.randint(0, 360)
@@ -156,10 +159,12 @@ def game():
                                             for degree in old_spawn_degrees:
                                                 if abs(degree - spawn_degree) < 10:
                                                     spawn_degree_okay = False
+                                            if spawn_degree_okay:
+                                                x_dist = int(distance * math.cos(math.radians(spawn_degree)))
+                                                y_dist = int(distance * math.sin(math.radians(spawn_degree)))
+                                                if player_obj.collides((x_dist + util.get_center(chest[0])[0], y_dist + util.get_center(chest[0])[1], 20, 20)):
+                                                    spawn_degree_okay = False
                                         old_spawn_degrees.append(spawn_degree)
-                                        distance = 70
-                                        x_dist = int(distance * math.cos(math.radians(spawn_degree)))
-                                        y_dist = int(distance * math.sin(math.radians(spawn_degree)))
                                         room.items.append([item[0], item[1], (x_dist + util.get_center(chest[0])[0], y_dist + util.get_center(chest[0])[1])])
                 for item in room.items:
                     if player_obj.collides((item[2][0], item[2][1], 20, 20)):
@@ -299,6 +304,8 @@ def game():
                 pygame.draw.line(display, WHITE, (inventory_rect[0] + (i * ICON_SIZE), inventory_rect[1]), (inventory_rect[0] + (i * ICON_SIZE), inventory_rect[1] + inventory_rect[3] - 1))
             item_coords = (0, 0)
             for name in player_obj.inventory.keys():
+                if name in player_obj.equipped_spellbooks or name == player_obj.recent_item:
+                    pygame.draw.rect(display, YELLOW, (inventory_rect[0] + item_coords[0], inventory_rect[1] + item_coords[1], ICON_SIZE, ICON_SIZE), True)
                 display.blit(pygame.transform.scale(resources.get_image(name, True), (ICON_RENDER_SIZE, ICON_RENDER_SIZE)), (inventory_rect[0] + item_coords[0] + RENDER_OFFSET, inventory_rect[1] + item_coords[1] + RENDER_OFFSET))
                 count_surface = font_small.render(str(player_obj.inventory[name]), False, WHITE)
                 display.blit(count_surface, (inventory_rect[0] + item_coords[0] + RENDER_OFFSET + int(ICON_RENDER_SIZE * 0.8), inventory_rect[1] + item_coords[1] + RENDER_OFFSET + int(ICON_RENDER_SIZE * 0.8)))
