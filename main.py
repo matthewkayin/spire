@@ -118,10 +118,14 @@ def game():
                     player_obj.check_collision(dt, collider)
                 for enemy in room.enemies:
                     enemy.update(dt, player_obj.get_rect())
+                    for other_enemy in room.enemies:
+                        if other_enemy != enemy:
+                            enemy.check_collision(dt, other_enemy.get_rect())
                     player_obj.check_collision(dt, enemy.get_rect())
                     if enemy.deal_damage:
                         if player_obj.collides(enemy.hurtbox):
                             player_obj.health -= enemy.POWER
+                            player_obj.take_hit(enemy.POWER, (enemy.x, enemy.y))
                     for spell in player_obj.active_spells:
                         if spell.handles_collisions:
                             if spell.collides(enemy.get_rect()):
@@ -250,8 +254,18 @@ def game():
                 display.blit(resources.get_image("heart-empty", True), (x_coord, y_coord))
         if player_obj.recent_spell is not None:
             display.blit(resources.get_image(player_obj.recent_spell, True), (DISPLAY_WIDTH - 36 - 5, 5))
+            spell_count = 0
+            if player_obj.recent_spell == "needle":
+                spell_count = int(player_obj.health)
+            else:
+                spell_count = player_obj.inventory["spellbook-" + player_obj.recent_spell]
+            count_surface = font_small.render(str(spell_count), False, WHITE)
+            display.blit(count_surface, (DISPLAY_WIDTH - 36 - 5 + int(36 * 0.8), 5 + int(36 * 0.8)))
         if player_obj.recent_item is not None:
             display.blit(pygame.transform.scale(resources.get_image(player_obj.recent_item, True), (36, 36)), (DISPLAY_WIDTH - 36 - 5 - 36 - 5, 5))
+            item_count = player_obj.inventory[player_obj.recent_item]
+            count_surface = font_small.render(str(item_count), False, WHITE)
+            display.blit(count_surface, (DISPLAY_WIDTH - 36 - 5 - 36 - 5 + int(36 * 0.8), 5 + int(36 * 0.8)))
 
         """
         RENDER SPELLWHEEL UI

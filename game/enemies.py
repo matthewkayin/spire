@@ -22,7 +22,7 @@ class Enemy(entity.Entity):
         self.attacking = False
         self.attack_timer = 0
         self.attack_speed_percent = 1
-        self.ATTACK_SPEED = 20
+        self.ATTACK_SPEED = 10
 
         self.deal_damage = False
         self.hurtbox = None

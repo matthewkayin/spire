@@ -45,6 +45,34 @@ class Entity():
     def collides(self, other):
         return util.rects_collide(self.get_rect(), other)
 
+    def check_collision(self, dt, collider):
+        """
+        This checks for a collision with a wall-like object and handles it if necessary
+        """
+        if self.collides(collider):
+            x_step = self.vx * dt
+            y_step = self.vy * dt
+
+            # Since there was a collision, rollback our previous movement
+            self.x -= x_step
+            self.y -= y_step
+
+            # Check to see if that collision happened due to x movement
+            self.x += x_step
+            x_caused_collision = self.collides(collider)
+            self.x -= x_step
+
+            # Check to see if that collision happened due to y movement
+            self.y += y_step
+            y_caused_collision = self.collides(collider)
+            self.y -= y_step
+
+            # If x/y didn't cause collision, we can move in x/y direction
+            if not x_caused_collision:
+                self.x += x_step
+            if not y_caused_collision:
+                self.y += y_step
+
     def get_image(self, alpha=255):
         image = None
         if alpha == 255:

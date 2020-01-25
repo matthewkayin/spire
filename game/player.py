@@ -25,6 +25,11 @@ class Player(entity.Entity):
         self.health = 3
         self.max_health = 3
 
+        self.IMPULSE_DURATION = 10
+        self.IMPULSE_SPEED = 5
+        self.impulse_timer = -1
+        self.impulse_x, self.impulse_y = (0, 0)
+
         self.active_spells = []
         self.pending_spell = None
         self.recent_spell = None
@@ -171,7 +176,19 @@ class Player(entity.Entity):
             # Remove ended spells from our active spell list
             self.active_spells = [spell for spell in self.active_spells if spell.state != spells.Spell.ENDED]
 
+            if self.impulse_timer != -1:
+                self.impulse_timer += dt
+                if self.impulse_timer >= self.IMPULSE_DURATION:
+                    self.impulse_timer = -1
+                    self.impulse_x, self.impulse_y = (0, 0)
+                else:
+                    self.old_vx, self.old_vy = self.vx, self.vy
+                    self.vx, self.vy = self.impulse_x, self.impulse_y
+
             super(Player, self).update(dt)
+
+            if self.impulse_timer != -1:
+                self.vx, self.vy = self.old_vx, self.old_vy
         elif self.ui_state == self.SPELLWHEEL:
             if self.fade_alpha < 100:
                 self.fade_alpha += dt * 10
@@ -181,44 +198,18 @@ class Player(entity.Entity):
         if self.ui_substate == self.AIM_SPELL:
             self.has_room_aim = False
 
+    def take_hit(self, damage, source):
+        self.health -= damage
+        distance_vector = (self.x - source[0], self.y - source[1])
+        self.impulse_x, self.impulse_y = util.scale_vector(distance_vector, self.IMPULSE_SPEED)
+        self.impulse_timer = 0
+
     def update_camera(self):
         """
         Sets the camera position based on the player position and offset with the mouse relative to the screen center
         """
         self.camera_x = self.x + self.CAMERA_OFFSET_X + ((self.mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
         self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((self.mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
-
-    def check_collision(self, dt, collider):
-        """
-        This checks for a collision with a wall-like object and handles it if necessary
-        """
-        if self.collides(collider):
-            x_step = self.vx * dt
-            y_step = self.vy * dt
-
-            # Since there was a collision, rollback our previous movement
-            self.x -= x_step
-            self.y -= y_step
-            self.camera_x -= x_step
-            self.camera_y -= y_step
-
-            # Check to see if that collision happened due to x movement
-            self.x += x_step
-            x_caused_collision = self.collides(collider)
-            self.x -= x_step
-
-            # Check to see if that collision happened due to y movement
-            self.y += y_step
-            y_caused_collision = self.collides(collider)
-            self.y -= y_step
-
-            # If x/y didn't cause collision, we can move in x/y direction
-            if not x_caused_collision:
-                self.x += x_step
-                self.camera_x += x_step
-            if not y_caused_collision:
-                self.y += y_step
-                self.camera_y += y_step
 
     def get_aim(self):
         return (int(self.mouse_x + self.camera_x), int(self.mouse_y + self.camera_y))
