@@ -6,7 +6,7 @@ class Enemy(entity.Entity):
     Class for a basic enemy
     """
 
-    def __init__(self, image, x, y, move_speed, starting_health):
+    def __init__(self, image, x, y, move_speed, starting_health, ignores_some_interactions=False):
         super(Enemy, self).__init__(image, True)
         self.x, self.y = x, y
 
@@ -22,6 +22,8 @@ class Enemy(entity.Entity):
         self.POWER = 0.5
 
         self.health = starting_health
+        self.max_health = starting_health
+        self.ignores_some_interactions = ignores_some_interactions
         self.interactions = []
 
     def update(self, dt, player_rect):
@@ -56,6 +58,23 @@ class Enemy(entity.Entity):
                     extended_interaction.reset()
                 return
         self.interactions.append(interaction)
+
+    def get_plague_meter_percent(self):
+        has_plague = False
+        smallest_time_left = None
+        max_time = None
+        for interaction in self.interactions:
+            if isinstance(interaction, spells.Interaction_Plague):
+                has_plague = True
+                if smallest_time_left is None or interaction.duration_timer < smallest_time_left:
+                    smallest_time_left = interaction.duration_timer
+                    max_time = interaction.DURATION
+                break
+
+        if not has_plague:
+            return None
+        else:
+            return smallest_time_left / max_time
 
 
 class Enemy_Zombie(Enemy):

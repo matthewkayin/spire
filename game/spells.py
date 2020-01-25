@@ -30,16 +30,23 @@ class Interaction():
     EXCLUDE_SAME_SOURCE = 1
     EXTEND_SAME_TAG = 2
 
-    def __init__(self, tag, source, duration, end_lag=0, duplicate_behavior=EXCLUDE_SAME_TAG):
+    def __init__(self, tag, source, duration, end_lag=0, duplicate_behavior=EXCLUDE_SAME_TAG, ignoreable=False):
         self.DURATION = duration
         self.END_LAG = end_lag
         self.tag = tag
         self.source = source
         self.duplicate_behavior = duplicate_behavior
+        self.ignoreable = ignoreable
 
         self.reset()
 
     def update(self, dt, target):
+        if self.ignoreable and target.ignores_some_interactions:
+            self.duration_timer = self.DURATION
+            self.end_lag_timer = self.END_LAG
+            self.ended = True
+            self.state = Interaction.ENDED
+            self.enable_effect = False
         if self.state == Interaction.INTERACTING:
             self.duration_timer += dt
             if self.duration_timer >= self.DURATION:
@@ -101,17 +108,10 @@ class Interaction_Slow(Interaction):
 
 
 class Interaction_Plague(Interaction):
-    def __init__(self, tag, source, duration, health_cap):
-        super(Interaction_Plague, self).__init__(tag, source, duration, 10, Interaction.EXCLUDE_SAME_SOURCE)
-        self.health_cap = health_cap
-        self.checked_target = False
+    def __init__(self, tag, source, duration):
+        super(Interaction_Plague, self).__init__(tag, source, duration, 10, Interaction.EXCLUDE_SAME_SOURCE, True)
 
     def update(self, dt, target):
-        if not self.checked_target:
-            if target.health >= self.health_cap:
-                self.duration_timer = self.DURATION
-                self.end_lag_timer = self.END_LAG
-                self.ended = True
         if self.state == Interaction.END_LAGGING:
             target.health = 0
 
@@ -244,10 +244,10 @@ class Needle(Spell):
 
     def get_interactions(self):
         if self.state == Needle.PROJECTILE and not self.applied_needle_damage:
-            return [Interaction_Damage("blood_damage", self.source_id, 3), Interaction_Plague("needle_plague", self.source_id, 60 * 30, 20)]
+            return [Interaction_Damage("blood_damage", self.source_id, 3), Interaction_Plague("needle_plague", self.source_id, 60 * 15)]
             self.applied_needle_damage = True
         else:
-            return [Interaction_Plague("needle_plague", self.source_id, 60 * 30, 20)]
+            return [Interaction_Plague("needle_plague", self.source_id, 60 * 15)]
 
     def handle_collision(self):
         if self.state == Needle.PROJECTILE:
@@ -307,7 +307,7 @@ class Fire(Spell):
         self.state = Fire.PROJECTILE
 
     def get_interactions(self):
-        return [Interaction_Damage("fire_damage", self.source_id, 1, 60), Interaction_Slow("fire_slow", self.source_id, 1, 0.4)]
+        return [Interaction_Damage("fire_damage", self.source_id, 1 / 10.0, 1), Interaction_Slow("fire_slow", self.source_id, 1, 0.4)]
 
     def handle_collision(self):
         if self.state == Fire.PROJECTILE:

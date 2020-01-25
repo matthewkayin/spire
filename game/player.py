@@ -20,6 +20,7 @@ class Player(entity.Entity):
 
         self.dx = 0
         self.dy = 0
+        self.update_velocity = False
         self.SPEED = 2
 
         self.health = 3
@@ -59,7 +60,6 @@ class Player(entity.Entity):
         self.mouse_x = mouse_x
         self.mouse_y = mouse_y
         self.click_interaction = None
-        self.update_velocity = False
 
         while len(input_queue) != 0:
             event = input_queue.pop()
@@ -149,11 +149,12 @@ class Player(entity.Entity):
 
     def update(self, dt):
         # If update velocity is true, that means we changed the direction vector so we should update the velocity to match it
-        if self.update_velocity:
+        if self.update_velocity and not self.ui_state == self.INVENTORY:
             # player vx/vy is direction (dx/dy) scaled up to SPEED
             self.vx, self.vy = util.scale_vector((self.dx, self.dy), self.SPEED)
+            self.update_velocity = False
 
-        if self.ui_state == self.NONE:
+        if self.ui_state == self.NONE or self.ui_state == self.INVENTORY:
 
             if self.pending_spell is not None:
                 if self.pending_spell.state == spells.Spell.CHARGING and (self.vx != 0 or self.vy != 0):
@@ -163,8 +164,8 @@ class Player(entity.Entity):
                         self.health -= 1
                     else:
                         self.remove_item("spellbook-" + self.recent_spell)
-                        if "spellbook-" + self.recent_spell not in self.inventory.keys():
-                            self.equipped_spellbooks.remove(self.recent_spell)
+                        if ("spellbook-" + self.recent_spell) not in self.inventory.keys():
+                            self.equipped_spellbooks.remove("spellbook-" + self.recent_spell)
                             self.recent_spell = None
                     self.pending_spell.cast()
                     self.active_spells.append(self.pending_spell)
@@ -192,14 +193,15 @@ class Player(entity.Entity):
                 if self.impulse_timer >= self.IMPULSE_DURATION:
                     self.impulse_timer = -1
                     self.impulse_x, self.impulse_y = (0, 0)
+                    self.update_velocity = True
                 else:
-                    self.old_vx, self.old_vy = self.vx, self.vy
+                    # self.old_vx, self.old_vy = self.vx, self.vy
                     self.vx, self.vy = self.impulse_x, self.impulse_y
 
             super(Player, self).update(dt)
 
-            if self.impulse_timer != -1:
-                self.vx, self.vy = self.old_vx, self.old_vy
+            # if self.impulse_timer != -1:
+            # self.vx, self.vy = self.old_vx, self.old_vy
         elif self.ui_state == self.SPELLWHEEL:
             if self.fade_alpha < 100:
                 self.fade_alpha += dt * 10
@@ -219,6 +221,8 @@ class Player(entity.Entity):
         """
         Sets the camera position based on the player position and offset with the mouse relative to the screen center
         """
+        if self.ui_state == self.INVENTORY:
+            return
         self.camera_x = self.x + self.CAMERA_OFFSET_X + ((self.mouse_x - self.SCREEN_CENTER_X) * self.CAMERA_SENSITIVITY)
         self.camera_y = self.y + self.CAMERA_OFFSET_Y + ((self.mouse_y - self.SCREEN_CENTER_Y) * self.CAMERA_SENSITIVITY)
 
@@ -261,6 +265,8 @@ class Player(entity.Entity):
         if self.ui_state == self.NONE:
             self.ui_state = self.INVENTORY
             self.ui_substate = self.NONE
+            self.cancel_spellcast()
+            self.cancel_item_use()
             self.make_inventory_ui_items()
         elif self.ui_state == self.INVENTORY:
             self.ui_state = self.NONE

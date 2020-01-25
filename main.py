@@ -111,7 +111,7 @@ def game():
                 for room in level.current_rooms:
                     for enemy in room.enemies:
                         spell.enemies.append((enemy.x, enemy.y))
-        if player_obj.ui_state == player_obj.NONE:
+        if player_obj.ui_state == player_obj.NONE or player_obj.ui_state == player_obj.INVENTORY:
             level.update(player_obj)
             for room in level.current_rooms:
                 for collider in room.colliders:
@@ -229,12 +229,17 @@ def game():
                         pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
                     else:
                         display.blit(enemy.get_image(), (enemy_x, enemy_y))
+                healthbar_rect = (enemy_x - 5, enemy_y - 5, int((10 + enemy.width) * (enemy.health / enemy.max_health)), 2)
+                pygame.draw.rect(display, RED, healthbar_rect, False)
+                if enemy.get_plague_meter_percent() is not None:
+                    plaguebar_rect = (enemy_x - 5, enemy_y - 2, int((10 + enemy.width) * (1 - enemy.get_plague_meter_percent())), 2)
+                    pygame.draw.rect(display, YELLOW, plaguebar_rect, False)
         """
         RENDER PLAYER
         """
         display.blit(player_obj.get_image(), (player_obj.get_x() - player_obj.get_camera_x(), player_obj.get_y() - player_obj.get_camera_y()))
         if player_obj.get_chargebar_percentage() > 0:
-            chargebar_rect = (player_obj.get_x() - player_obj.get_camera_x() - 5, player_obj.get_y() - player_obj.get_camera_y() - 5, int(round(30 * player_obj.get_chargebar_percentage())), 5)
+            chargebar_rect = (player_obj.get_x() - player_obj.get_camera_x() - 2, player_obj.get_y() - player_obj.get_camera_y() - 5, int(round(30 * player_obj.get_chargebar_percentage())), 5)
             pygame.draw.rect(display, YELLOW, chargebar_rect, False)
         for room in level.rooms:
             for tile in room.render_points:
