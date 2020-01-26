@@ -49,7 +49,11 @@ class Entity():
         """
         This checks for a collision with a wall-like object and handles it if necessary
         """
+        collides = False
+
         if self.collides(collider):
+            collides = True
+
             x_step = self.vx * dt
             y_step = self.vy * dt
 
@@ -72,6 +76,9 @@ class Entity():
                 self.x += x_step
             if not y_caused_collision:
                 self.y += y_step
+
+        # This is for if we want to override the function and add extra behavior to the collision
+        return collides
 
     def get_image(self, alpha=255):
         image = None

@@ -20,11 +20,13 @@ class Player(entity.Entity):
 
         self.dx = 0
         self.dy = 0
+        self.speed_percent = 1
         self.update_velocity = False
         self.SPEED = 2
 
         self.health = 3
         self.max_health = 3
+        self.interactions = []
 
         self.IMPULSE_DURATION = 10
         self.IMPULSE_SPEED = 5
@@ -152,6 +154,8 @@ class Player(entity.Entity):
         if self.update_velocity and not self.ui_state == self.INVENTORY:
             # player vx/vy is direction (dx/dy) scaled up to SPEED
             self.vx, self.vy = util.scale_vector((self.dx, self.dy), self.SPEED)
+            if self.impulse_timer == -1:
+                self.vx, self.vy = (self.vx * self.speed_percent, self.vy * self.speed_percent)
             self.update_velocity = False
 
         if self.ui_state == self.NONE or self.ui_state == self.INVENTORY:
@@ -187,6 +191,11 @@ class Player(entity.Entity):
                 spell.update(dt)
             # Remove ended spells from our active spell list
             self.active_spells = [spell for spell in self.active_spells if spell.state != spells.Spell.ENDED]
+
+            self.speed_percent = 1
+            for interaction in self.interactions:
+                interaction.update(dt, self)
+            self.interactions = [interaction for interaction in self.interactions if not interaction.ended]
 
             if self.impulse_timer != -1:
                 self.impulse_timer += dt
@@ -234,6 +243,9 @@ class Player(entity.Entity):
 
     def get_camera_y(self):
         return int(round(self.camera_y))
+
+    def add_interaction(self, new_interaction):
+        self.interactions.append(new_interaction)
 
     def begin_spellcast(self):
         if self.pending_spell is None:

@@ -118,22 +118,25 @@ def game():
                     player_obj.check_collision(dt, collider)
                 for enemy in room.enemies:
                     enemy.update(dt, player_obj.get_rect())
-                    for other_enemy in room.enemies:
-                        if other_enemy != enemy:
-                            enemy.check_collision(dt, other_enemy.get_rect())
-                    player_obj.check_collision(dt, enemy.get_rect())
-                    if enemy.deal_damage:
-                        if player_obj.collides(enemy.hurtbox):
-                            player_obj.health -= enemy.POWER
-                            player_obj.take_hit(enemy.POWER, (enemy.x, enemy.y))
-                    for spell in player_obj.active_spells:
-                        if spell.handles_collisions:
-                            if spell.collides(enemy.get_rect()):
-                                if spell.interact:
-                                    for interaction in spell.get_interactions():
-                                        enemy.add_interaction(interaction)
-                                spell.handle_collision()
-                room.enemies = [enemy for enemy in room.enemies if enemy.health > 0]
+                    if enemy.health > 0:
+                        for collider in room.colliders:
+                            enemy.check_collision(dt, collider)
+                        for other_enemy in room.enemies:
+                            if other_enemy != enemy and other_enemy.health > 0:
+                                enemy.check_collision(dt, other_enemy.get_rect())
+                        player_obj.check_collision(dt, enemy.get_rect())
+                    for hurtbox in enemy.get_hurtboxes():
+                        if player_obj.collides(hurtbox[0]):
+                            player_obj.add_interaction(hurtbox[1])
+                    if enemy.health > 0:
+                        for spell in player_obj.active_spells:
+                            if spell.handles_collisions:
+                                if spell.collides(enemy.get_rect()):
+                                    if spell.interact:
+                                        for interaction in spell.get_interactions():
+                                            enemy.add_interaction(interaction)
+                                    spell.handle_collision()
+                room.enemies = [enemy for enemy in room.enemies if not enemy.delete_me]
                 for spell in player_obj.active_spells:
                     if spell.handles_collisions:
                         for collider in room.colliders:
@@ -222,18 +225,22 @@ def game():
         """
         for room in level.rooms:
             for enemy in room.enemies:
-                enemy_x = enemy.get_x() - player_obj.get_camera_x()
-                enemy_y = enemy.get_y() - player_obj.get_camera_y()
-                if rect_in_screen((enemy_x, enemy_y, enemy.width, enemy.height)):
-                    if enemy.attacking:
-                        pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
-                    else:
-                        display.blit(enemy.get_image(), (enemy_x, enemy_y))
-                healthbar_rect = (enemy_x - 5, enemy_y - 5, int((10 + enemy.width) * (enemy.health / enemy.max_health)), 2)
-                pygame.draw.rect(display, RED, healthbar_rect, False)
-                if enemy.get_plague_meter_percent() is not None:
-                    plaguebar_rect = (enemy_x - 5, enemy_y - 2, int((10 + enemy.width) * (1 - enemy.get_plague_meter_percent())), 2)
-                    pygame.draw.rect(display, YELLOW, plaguebar_rect, False)
+                for subrenderable in enemy.get_subrenderables():
+                    coords = (int(subrenderable[1][0]) - player_obj.get_camera_x(), int(subrenderable[1][1]) - player_obj.get_camera_y())
+                    display.blit(resources.get_image(subrenderable[0], True), coords)
+                if enemy.health > 0:
+                    enemy_x = enemy.get_x() - player_obj.get_camera_x()
+                    enemy_y = enemy.get_y() - player_obj.get_camera_y()
+                    if rect_in_screen((enemy_x, enemy_y, enemy.width, enemy.height)):
+                        if enemy.attacking:
+                            pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
+                        else:
+                            display.blit(enemy.get_image(), (enemy_x, enemy_y))
+                    healthbar_rect = (enemy_x - 5, enemy_y - 5, int((10 + enemy.width) * (enemy.health / enemy.max_health)), 2)
+                    pygame.draw.rect(display, RED, healthbar_rect, False)
+                    if enemy.get_plague_meter_percent() is not None:
+                        plaguebar_rect = (enemy_x - 5, enemy_y - 2, int((10 + enemy.width) * (1 - enemy.get_plague_meter_percent())), 2)
+                        pygame.draw.rect(display, YELLOW, plaguebar_rect, False)
         """
         RENDER PLAYER
         """
