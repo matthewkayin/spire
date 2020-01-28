@@ -21,17 +21,25 @@ class Interaction_Damage(Interaction):
         self.damage = damage
 
     def update(self, dt, target):
-        target.health -= self.damage
+        target.take_hit(self.damage)
         self.ended = True
 
 
 class Interaction_Impulse(Interaction):
-    def __init__(self, source_pos):
+    def __init__(self, source_pos, speed_scale=1, degree=0):
         self.source_pos = source_pos
+        self.speed_scale = speed_scale
+        self.degree = degree
 
     def update(self, dt, target):
         distance_vector = (target.x - self.source_pos[0], target.y - self.source_pos[1])
-        target.impulse_x, target.impulse_y = util.scale_vector(distance_vector, target.IMPULSE_SPEED)
+        target.impulse_x, target.impulse_y = util.scale_vector(distance_vector, target.IMPULSE_SPEED * self.speed_scale)
+        if self.degree != 0:
+            old_x = target.impulse_x
+            old_y = target.impulse_y
+            angle = math.radians(self.degree)
+            target.impulse_x = (old_x * math.cos(angle)) - (old_y * math.sin(angle))
+            target.impulse_y = (old_x * math.sin(angle)) + (old_y * math.cos(angle))
         target.impulse_timer = 0
         self.ended = True
 
@@ -185,22 +193,18 @@ class Enemy_Slime(Enemy):
     """
 
     ATTACK_RANGE = 200
-    DESIRED_STRAFE_RADIUS = 200
+    FOLLOW_RANGE = 300
     SLIMEBALL_STAY_TIME = 20 * 60
     PROJECTILE_SPEED = 3
 
     def __init__(self, x, y):
         super(Enemy_Slime, self).__init__("slime", x, y, 1, 3)
 
-        self.angle_direction = 1
-        self.randomize_angle = False
-        self.target_pos = None
-
         self.slimeballs = []
 
         self.ATTACK_SPEED = 20
         self.next_attack_timer = 0
-        self.NEXT_ATTACK_DURATION = 0
+        self.NEXT_ATTACK_TIME = 60
 
     def get_subrenderables(self):
         subrenderables = []
@@ -235,42 +239,28 @@ class Enemy_Slime(Enemy):
                 if self.attack_timer >= self.ATTACK_SPEED:
                     self.shoot_slimeball(util.get_center(player_rect))
                     self.attacking = False
-            elif util.get_distance(util.get_center(player_rect), self.get_center()) <= Enemy_Slime.DESIRED_STRAFE_RADIUS + 100:
-                if self.target_pos is not None:
-                    distance_vector = (self.target_pos[0] - self.get_center()[0], self.target_pos[1] - self.get_center()[1])
-                    self.vx, self.vy = util.scale_vector(distance_vector, self.MOVE_SPEED)
-                    if util.point_in_rect(self.target_pos, (self.get_center()[0] - 2, self.get_center()[1] - 2, 2, 2)):
-                        self.target_pos = None
-                if self.target_pos is None:
-                    player_center = util.get_center(player_rect)
-                    current_angle = util.get_point_angle(player_center, self.get_center())
-                    new_angle = 0
-                    if self.randomize_angle:
-                        self.randomize_angle = False
-                        new_angle = random.randint(0, 359)
+            else:
+                player_center = util.get_center(player_rect)
+                self_center = self.get_center()
+                player_distance = util.get_distance(self_center, player_center)
+                if player_distance <= Enemy_Slime.FOLLOW_RANGE:
+                    self.next_attack_timer += dt
+                    if player_distance <= Enemy_Slime.ATTACK_RANGE:
+                        self.vx, self.vy = (0, 0)
+                        if self.next_attack_timer >= self.NEXT_ATTACK_TIME:
+                            self.attacking = True
+                            self.attack_timer = 0
+                            self.next_attack_timer = 0
+                            self.NEXT_ATTACK_TIME = random.randint(1, 10) * 60
                     else:
-                        new_angle = current_angle + (5 * self.angle_direction)
-                    self.target_pos = (player_center[0] + (Enemy_Slime.DESIRED_STRAFE_RADIUS * math.cos(math.radians(new_angle))), player_center[1] - (Enemy_Slime.DESIRED_STRAFE_RADIUS * math.sin(math.radians(new_angle))))
-                self.next_attack_timer += dt
-                if self.next_attack_timer >= self.NEXT_ATTACK_DURATION:
-                    self.attacking = True
-                    self.attack_timer = 0
-                    self.next_attack_timer = 0
-                    self.NEXT_ATTACK_DURATION = random.randint(20, 40) * 60
-                    self.vx, self.vy = (0, 0)
-                    self.target_pos = None
+                        # Vectorize movement relative to player
+                        vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
+                        self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
 
     def shoot_slimeball(self, target_pos):
         slimeball_entity = entity.Entity("slimeball", True)
         slimeball_entity.x, slimeball_entity.y = self.get_center()
         self.slimeballs.append([slimeball_entity, target_pos, -1])
-
-    def check_collision(self, dt, collider):
-        collided = super(Enemy_Slime, self).check_collision(dt, collider)
-        if collided:
-            self.target_pos = None
-            self.vx, self.vy = (0, 0)
-            self.randomize_angle = True
 
     def get_hurtboxes(self):
         hurtboxes = []
@@ -281,3 +271,83 @@ class Enemy_Slime(Enemy):
                 hurtboxes.append([slimeball[0].get_rect(), Interaction_Slow(0.5)])
 
         return hurtboxes
+
+
+class Enemy_Lizard(Enemy):
+    """
+    Class for the lizard
+    """
+
+    ATTACK_RANGE = 100
+    FOLLOW_RANGE = 250
+    LUNGE_DISTANCE = 200
+
+    def __init__(self, x, y):
+        super(Enemy_Lizard, self).__init__("lizard", x, y, 1, 3)
+
+        self.angle_direction = 1
+        if random.randint(0, 1) == 0:
+            self.angle_direction *= -1
+        self.randomize_angle = False
+        self.target_pos = None
+        self.source_pos = None
+        self.lunging = False
+
+        self.LUNGE_SPEED = 10
+        self.ATTACK_SPEED = 60
+        self.next_attack_timer = 0
+        self.NEXT_ATTACK_TIME = 2 * 60
+
+    def do_ai(self, dt, player_rect):
+        if self.lunging:
+            self_center = self.get_center()
+            distance_vector = (self.target_pos[0] - self_center[0], self.target_pos[1] - self_center[1])
+            self.vx, self.vy = util.scale_vector(distance_vector, self.LUNGE_SPEED)
+            if util.get_distance(self_center, self.target_pos) <= 20:
+                self.target_pos = None
+                self.source_pos = None
+                self.lunging = False
+                self.vx, self.vy = (0, 0)
+        elif self.attacking:
+            self.attack_timer += (dt * self.attack_speed_percent)
+            if self.attack_timer >= self.ATTACK_SPEED:
+                self.start_lunge(util.get_center(player_rect))
+                self.attacking = False
+        else:
+            player_center = util.get_center(player_rect)
+            self_center = self.get_center()
+            player_distance = util.get_distance(self_center, player_center)
+            if player_distance <= Enemy_Lizard.FOLLOW_RANGE:
+                self.next_attack_timer += dt
+                if player_distance <= Enemy_Lizard.ATTACK_RANGE:
+                    self.vx, self.vy = (0, 0)
+                    if self.next_attack_timer >= self.NEXT_ATTACK_TIME:
+                        self.attacking = True
+                        self.attack_timer = 0
+                        self.next_attack_timer = 0
+                        self.NEXT_ATTACK_TIME = random.randint(3, 10) * 60
+                else:
+                    # Vectorize movement relative to player
+                    vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
+                    self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
+
+    def start_lunge(self, player_pos):
+        self_center = self.get_center()
+        distance_vector = (player_pos[0] - self_center[0], player_pos[1] - self_center[1])
+        self.target_pos = util.sum_vectors(util.scale_vector(distance_vector, Enemy_Lizard.LUNGE_DISTANCE), self_center)
+        self.source_pos = self_center
+        self.lunging = True
+
+    def check_collision(self, dt, collider):
+        collided = super(Enemy_Lizard, self).check_collision(dt, collider)
+        if collided:
+            self.lunging = False
+            self.target_pos = None
+            self.vx, self.vy = (0, 0)
+            self.randomize_angle = True
+
+    def get_hurtboxes(self):
+        if self.lunging:
+            return [(self.get_rect(), Interaction_Damage(1)), (self.get_rect(), Interaction_Impulse(self.source_pos, 2, 90))]
+        else:
+            return []

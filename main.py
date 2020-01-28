@@ -110,7 +110,8 @@ def game():
                 spell.enemies = []
                 for room in level.current_rooms:
                     for enemy in room.enemies:
-                        spell.enemies.append((enemy.x, enemy.y))
+                        if enemy.health > 0:
+                            spell.enemies.append((enemy.x, enemy.y))
         if player_obj.ui_state == player_obj.NONE or player_obj.ui_state == player_obj.INVENTORY:
             level.update(player_obj)
             for room in level.current_rooms:

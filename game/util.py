@@ -5,6 +5,10 @@ def get_distance(point1, point2):
     return math.sqrt(((point2[0] - point1[0]) ** 2) + ((point2[1] - point1[1]) ** 2))
 
 
+def sum_vectors(a, b):
+    return (a[0] + b[0], a[1] + b[1])
+
+
 def scale_vector(old_vector, new_magnitude):
     old_magnitude = math.sqrt((old_vector[0] ** 2) + (old_vector[1] ** 2))
     if old_magnitude == 0:

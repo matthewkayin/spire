@@ -26,6 +26,8 @@ class Player(entity.Entity):
 
         self.health = 3
         self.max_health = 3
+        self.inv_frame_timer = -1
+        self.INV_FRAME_TIME = 60
         self.interactions = []
 
         self.IMPULSE_DURATION = 10
@@ -160,6 +162,11 @@ class Player(entity.Entity):
 
         if self.ui_state == self.NONE or self.ui_state == self.INVENTORY:
 
+            if self.inv_frame_timer != -1:
+                self.inv_frame_timer += dt
+                if self.inv_frame_timer >= self.INV_FRAME_TIME:
+                    self.inv_frame_timer = -1
+
             if self.pending_spell is not None:
                 if self.pending_spell.state == spells.Spell.CHARGING and (self.vx != 0 or self.vy != 0):
                     self.cancel_spellcast()
@@ -220,11 +227,10 @@ class Player(entity.Entity):
         if self.ui_substate == self.AIM_SPELL:
             self.has_room_aim = False
 
-    def take_hit(self, damage, source):
-        self.health -= damage
-        distance_vector = (self.x - source[0], self.y - source[1])
-        self.impulse_x, self.impulse_y = util.scale_vector(distance_vector, self.IMPULSE_SPEED)
-        self.impulse_timer = 0
+    def take_hit(self, damage):
+        if self.inv_frame_timer == -1:
+            self.health -= damage
+            self.inv_frame_timer = 0
 
     def update_camera(self):
         """
