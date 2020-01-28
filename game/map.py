@@ -5,10 +5,9 @@ class Map():
     def __init__(self):
         self.current_rooms = []
         self.rooms = []
-        self.rooms.append(Room(0, 0, "empty-one"))
-        self.rooms.append(Room(0, -600, "empty-two"))
-        self.rooms[1].enemies.append(enemies.Enemy_Lizard(500, -500))
-        self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
+        self.rooms.append(Room(0, 0, 15, 6, [Room.DOOR_TOP, Room.DOOR_BOT, Room.DOOR_LEFT, Room.DOOR_RIGHT]))
+        # self.rooms[1].enemies.append(enemies.Enemy_Lizard(500, -500))
+        # self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
         self.current_room = 0
         self.current_room = 0
         self.previous_room = -1
@@ -39,22 +38,24 @@ class Map():
 
 
 class Room():
-    def __init__(self, base_x, base_y, generator):
+    DOOR_TOP = 0
+    DOOR_RIGHT = 1
+    DOOR_BOT = 2
+    DOOR_LEFT = 3
+
+    def __init__(self, base_x, base_y, width, height, doors=[]):
         self.colliders = []
         self.render_points = []
         self.entrances = []
         self.base_x = base_x
         self.base_y = base_y
-        self.width = 12 * 50
-        self.height = 12 * 50
+        self.width = 0
+        self.height = 0
         self.enemies = []
         self.items = []
         self.chests = []
 
-        if generator == "empty-one":
-            self.create_empty_one()
-        elif generator == "empty-two":
-            self.create_empty_two()
+        self.generate_room(width, height, doors)
 
         self.offset_coords(base_x, base_y)
 
@@ -71,59 +72,94 @@ class Room():
         else:
             return False
 
-    def create_empty_one(self):
-        render_map = [[3,13,13,13,14,-1,-1,12,13,13,13, 5],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [15,16,16,16,16,16,16,16,16,16,16,17]]
+    def generate_room(self, width, height, doors):
+        self.width = width * 50
+        self.height = height * 50
 
-        self.colliders.append((0, 0, 250, 25))
-        self.colliders.append((350, 0, 250, 25))
-        self.colliders.append((0, 565, 600, 35))
-        self.colliders.append((0, 50, 50, 500))
-        self.colliders.append((550, 50, 50, 500))
-
-        for y in range(0, len(render_map)):
-            for x in range(0, len(render_map[0])):
-                if render_map[y][x] != -1:
-                    self.render_points.append((("tileset", render_map[y][x]), x * 50, y * 50))
+        render_map = []
+        for row in range(0, height):
+            new_row = []
+            for column in range(0, width):
+                if row == 0:
+                    if column == 0:
+                        new_row.append(3)
+                    elif column == width - 1:
+                        new_row.append(5)
+                    else:
+                        new_row.append(13)
+                elif row == height - 1:
+                    if column == 0:
+                        new_row.append(15)
+                    elif column == width - 1:
+                        new_row.append(17)
+                    else:
+                        new_row.append(16)
                 else:
-                    self.render_points.append(("floor", x * 50, y * 50))
+                    if column == 0:
+                        new_row.append(9)
+                    elif column == width - 1:
+                        new_row.append(11)
+                    else:
+                        new_row.append(-1)
+            render_map.append(new_row)
 
-    def create_empty_two(self):
-        render_map = [[3,13,13,13,13,13,13,13,13,13,13, 5],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,11],
-                      [15,16,16,16,2,-1,-1,0,16,16,16,17]]
+        if Room.DOOR_TOP in doors:
+            door_index = (width // 2) - 1
+            render_map[0][door_index - 1] = 14
+            render_map[0][door_index] = -1
+            render_map[0][door_index + 1] = -1
+            render_map[0][door_index + 2] = 12
 
-        self.colliders.append((0, 0, 600, 25))
-        self.colliders.append((0, 565, 250, 35))
-        self.colliders.append((350, 565, 250, 35))
-        self.colliders.append((0, 50, 50, 500))
-        self.colliders.append((550, 50, 50, 500))
+            self.colliders.append((0, 0, door_index * 50, 25))
+            self.colliders.append(((door_index * 50) + 100, 0, self.width - ((door_index * 50) + 100), 25))
+        else:
+            self.colliders.append((0, 0, self.width, 25))
 
-        for y in range(0, len(render_map)):
-            for x in range(0, len(render_map[0])):
-                if render_map[y][x] != -1:
-                    self.render_points.append((("tileset", render_map[y][x]), x * 50, y * 50))
+        if Room.DOOR_BOT in doors:
+            door_index = (width // 2) - 1
+            render_map[height - 1][door_index - 1] = 2
+            render_map[height - 1][door_index] = -1
+            render_map[height - 1][door_index + 1] = -1
+            render_map[height - 1][door_index + 2] = 0
+
+            self.colliders.append((0, self.height - 50, door_index * 50, 35))
+            self.colliders.append(((door_index * 50) + 100, self.height - 50, self.width - ((door_index * 50) + 100), 35))
+        else:
+            self.colliders.append((0, self.height - 50, self.width, 35))
+
+        if Room.DOOR_LEFT in doors:
+            door_index = (height // 2) - 1
+            render_map[door_index - 1][0] = 18
+            render_map[door_index][0] = -1
+            render_map[door_index + 1][0] = -1
+            render_map[door_index + 2][0] = 2
+
+            self.colliders.append((0, 50, 50, (door_index - 1) * 50))
+            self.colliders.append((0, (door_index + 2) * 50, 50, self.height - 200 - ((door_index - 1) * 50)))
+        else:
+            self.colliders.append((0, 50, 50, (height - 2) * 50))
+
+        if Room.DOOR_RIGHT in doors:
+            door_index = (height // 2) - 1
+            render_map[door_index - 1][width - 1] = 20
+            render_map[door_index][width - 1] = -1
+            render_map[door_index + 1][width - 1] = -1
+            render_map[door_index + 2][width - 1] = 0
+
+            self.colliders.append((self.width - 50, 50, 50, (door_index - 1) * 50))
+            self.colliders.append((self.width - 50, (door_index + 2) * 50, 50, self.height - 200 - ((door_index - 1) * 50)))
+        else:
+            self.colliders.append((self.width - 50, 50, 50, (height - 2) * 50))
+
+        for row in range(0, len(render_map)):
+            print(render_map[row])
+
+        for row in range(0, len(render_map)):
+            for column in range(0, len(render_map[0])):
+                if render_map[row][column] != -1:
+                    self.render_points.append((("tileset", render_map[row][column]), column * 50, row * 50))
                 else:
-                    self.render_points.append(("floor", x * 50, y * 50))
+                    self.render_points.append(("floor", column * 50, row * 50))
 
     def offset_coords(self, base_x, base_y):
         self.base_x = base_x
