@@ -61,6 +61,7 @@ class Enemy(entity.Entity):
     def __init__(self, image, x, y, move_speed, starting_health, ignores_some_interactions=False):
         super(Enemy, self).__init__(image, True)
         self.x, self.y = x, y
+        self.check_entity_collisions = False
 
         self.MOVE_SPEED = move_speed
 
@@ -307,11 +308,14 @@ class Enemy_Lizard(Enemy):
                 self.target_pos = None
                 self.source_pos = None
                 self.lunging = False
+                self.check_entity_collisions = True
                 self.vx, self.vy = (0, 0)
         elif self.attacking:
             self.attack_timer += (dt * self.attack_speed_percent)
             if self.attack_timer >= self.ATTACK_SPEED:
-                self.start_lunge(util.get_center(player_rect))
+                # self.start_lunge(util.get_center(player_rect))
+                self.lunging = True
+                self.check_entity_collisions = False
                 self.attacking = False
         else:
             player_center = util.get_center(player_rect)
@@ -322,6 +326,9 @@ class Enemy_Lizard(Enemy):
                 if player_distance <= Enemy_Lizard.ATTACK_RANGE:
                     self.vx, self.vy = (0, 0)
                     if self.next_attack_timer >= self.NEXT_ATTACK_TIME:
+                        distance_vector = (player_center[0] - self_center[0], player_center[1] - self_center[1])
+                        self.target_pos = util.sum_vectors(util.scale_vector(distance_vector, Enemy_Lizard.LUNGE_DISTANCE), self_center)
+                        self.source_pos = self_center
                         self.attacking = True
                         self.attack_timer = 0
                         self.next_attack_timer = 0
@@ -330,13 +337,6 @@ class Enemy_Lizard(Enemy):
                     # Vectorize movement relative to player
                     vector_to_player = ((player_center[0] - self_center[0]), (player_center[1] - self_center[1]))
                     self.vx, self.vy = util.scale_vector(vector_to_player, self.MOVE_SPEED)
-
-    def start_lunge(self, player_pos):
-        self_center = self.get_center()
-        distance_vector = (player_pos[0] - self_center[0], player_pos[1] - self_center[1])
-        self.target_pos = util.sum_vectors(util.scale_vector(distance_vector, Enemy_Lizard.LUNGE_DISTANCE), self_center)
-        self.source_pos = self_center
-        self.lunging = True
 
     def check_collision(self, dt, collider):
         collided = super(Enemy_Lizard, self).check_collision(dt, collider)

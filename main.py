@@ -80,11 +80,9 @@ DEATH_SCREEN = 1
 
 def game():
     player_obj = player.Player(DISPLAY_WIDTH, DISPLAY_HEIGHT)
-    player_obj.x = DISPLAY_WIDTH // 2
-    player_obj.y = DISPLAY_HEIGHT // 2
 
     level = map.Map()
-    resources.load_tileset("tileset")
+    player_obj.x, player_obj.y = level.player_spawn
 
     running = True
     next_state = EXIT
@@ -122,9 +120,11 @@ def game():
                     if enemy.health > 0:
                         for collider in room.colliders:
                             enemy.check_collision(dt, collider)
-                        for other_enemy in room.enemies:
-                            if other_enemy != enemy and other_enemy.health > 0:
-                                enemy.check_collision(dt, other_enemy.get_rect())
+                        if enemy.check_entity_collisions:
+                            for other_enemy in room.enemies:
+                                if other_enemy != enemy and other_enemy.health > 0:
+                                    enemy.check_collision(dt, other_enemy.get_rect())
+                            enemy.check_collision(dt, player_obj.get_rect())
                         player_obj.check_collision(dt, enemy.get_rect())
                     for hurtbox in enemy.get_hurtboxes():
                         if player_obj.collides(hurtbox[0]):

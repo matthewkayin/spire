@@ -1,16 +1,20 @@
-from . import enemies, util
+from . import enemies, util, resources
 
 
 class Map():
     def __init__(self):
         self.current_rooms = []
         self.rooms = []
-        self.rooms.append(Room(0, 0, 15, 6, [Room.DOOR_TOP, Room.DOOR_BOT, Room.DOOR_LEFT, Room.DOOR_RIGHT]))
-        # self.rooms[1].enemies.append(enemies.Enemy_Lizard(500, -500))
+        self.rooms.append(Room(0, 0, 14, 14, []))
+        self.rooms[0].enemies.append(enemies.Enemy_Lizard(70, 70))
         # self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
         self.current_room = 0
         self.current_room = 0
         self.previous_room = -1
+
+        self.player_spawn = (self.rooms[0].width // 2, self.rooms[0].height * 0.75)
+
+        resources.load_tileset("tileset")
 
     def update(self, player):
         self.current_rooms = []
@@ -150,9 +154,6 @@ class Room():
             self.colliders.append((self.width - 50, (door_index + 2) * 50, 50, self.height - 200 - ((door_index - 1) * 50)))
         else:
             self.colliders.append((self.width - 50, 50, 50, (height - 2) * 50))
-
-        for row in range(0, len(render_map)):
-            print(render_map[row])
 
         for row in range(0, len(render_map)):
             for column in range(0, len(render_map[0])):
