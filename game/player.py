@@ -285,6 +285,7 @@ class Player(entity.Entity):
             self.ui_substate = self.NONE
             self.cancel_spellcast()
             self.cancel_item_use()
+            self.vx, self.vy = (0, 0)
             self.make_inventory_ui_items()
         elif self.ui_state == self.INVENTORY:
             self.ui_state = self.NONE
