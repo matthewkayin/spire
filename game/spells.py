@@ -132,6 +132,8 @@ def get_by_name(shortname):
         return Golem()
     elif shortname == "thorns":
         return Thorns()
+    elif shortname == "teleport":
+        return Teleport()
     else:
         print("Error! Spell " + shortname + " hasn't been added to spells.get_by_name()")
         return None
@@ -451,3 +453,28 @@ class Thorns(Spell):
 
     def get_aim_coords(self, start, target):
         return (start[0] - (self.width // 2), start[1] - (self.height // 2))
+
+
+class Teleport(Spell):
+    TELEPORT = 3
+
+    def __init__(self):
+        super(Teleport, self).__init__(["player-idle"], 0, 20, 300, True)
+
+    def get_teleport_coords(self):
+        return self.get_aim_coords(self.start, self.target)
+
+    def cast(self):
+        return
+
+    def get_interactions(self):
+        return []
+
+    def handle_collision(self):
+        return
+
+    def is_aim_valid(self, start, target):
+        return util.get_distance(start, target) <= self.AIM_RADIUS
+
+    def get_aim_coords(self, start, target):
+        return (target[0] - (self.width // 2), target[1] - (self.height // 2))

@@ -58,10 +58,11 @@ class Enemy(entity.Entity):
     Class for a basic enemy
     """
 
-    def __init__(self, image, x, y, move_speed, starting_health, ignores_some_interactions=False):
+    def __init__(self, image, x, y, move_speed, starting_health):
         super(Enemy, self).__init__(image, True)
         self.x, self.y = x, y
-        self.check_entity_collisions = False
+        self.check_entity_collisions = True
+        self.is_boss = False
 
         self.MOVE_SPEED = move_speed
 
@@ -77,7 +78,6 @@ class Enemy(entity.Entity):
         self.health = starting_health
         self.max_health = starting_health
         self.delete_me = False
-        self.ignores_some_interactions = ignores_some_interactions
         self.interactions = []
 
     def get_subrenderables(self):
@@ -157,7 +157,6 @@ class Enemy_Zombie(Enemy):
     def do_ai(self, dt, player_rect):
         # If we finished an attack last turn, we want to reset these variables so the hit happens only once
         if self.deal_damage:
-            self.hurtbox = None
             self.deal_damage = False
 
         # If we're in an attack windup
@@ -351,3 +350,19 @@ class Enemy_Lizard(Enemy):
             return [(self.get_rect(), Interaction_Damage(1)), (self.get_rect(), Interaction_Impulse(self.source_pos, 2, 90))]
         else:
             return []
+
+
+class Boss_Scorpion(Enemy):
+    # State constants
+    ATTACK = 0
+    STING = 1
+    ROLLY_POLLY = 2
+
+    def __init__(self, x, y):
+        super(Boss_Scorpion, self).__init__("scorpion", x, y, 1, 25)
+
+        self.state = Boss_Scorpion.ATTACK
+
+    def do_ai(self, dt, player_rect):
+        if self.deal_damage:
+            self.deal_damage = False

@@ -46,9 +46,9 @@ class Player(entity.Entity):
         self.recent_item = None
         self.item_use_timer = -1
         self.ITEM_USE_TIME = 20
-        self.add_item("spellbook-fire", 3)
-        self.add_item("spellbook-golem", 3)
-        self.add_item("spellbook-thorns", 3)
+        self.add_item("spellbook-teleport", 3)
+        # self.add_item("spellbook-golem", 3)
+        # self.add_item("spellbook-thorns", 3)
         self.add_item("potion", 3)
 
         # UI state constants
@@ -178,8 +178,11 @@ class Player(entity.Entity):
                         if ("spellbook-" + self.recent_spell) not in self.inventory.keys():
                             self.equipped_spellbooks.remove("spellbook-" + self.recent_spell)
                             self.recent_spell = None
-                    self.pending_spell.cast()
-                    self.active_spells.append(self.pending_spell)
+                    if isinstance(self.pending_spell, spells.Teleport):
+                        self.x, self.y = self.pending_spell.get_teleport_coords()
+                    else:
+                        self.pending_spell.cast()
+                        self.active_spells.append(self.pending_spell)
                     self.pending_spell = None
                 else:
                     # It's important to put the update in the else otherwise we will update the spell twice in one update
