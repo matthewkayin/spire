@@ -46,9 +46,9 @@ class Player(entity.Entity):
         self.recent_item = None
         self.item_use_timer = -1
         self.ITEM_USE_TIME = 20
-        self.add_item("spellbook-teleport", 3)
-        # self.add_item("spellbook-golem", 3)
-        # self.add_item("spellbook-thorns", 3)
+        self.add_item("spellbook-fire", 3)
+        self.add_item("spellbook-golem", 3)
+        self.add_item("spellbook-thorns", 3)
         self.add_item("potion", 3)
 
         # UI state constants

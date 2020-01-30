@@ -6,7 +6,8 @@ class Map():
         self.current_rooms = []
         self.rooms = []
         self.rooms.append(Room(0, 0, 14, 14, []))
-        self.rooms[0].enemies.append(enemies.Enemy_Lizard(70, 70))
+        self.rooms[0].enemies.append(enemies.Boss_Scorpion(70, 70))
+        self.rooms[0].enemies.append(enemies.Enemy_Zombie(200, 200))
         # self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
         self.current_room = 0
         self.current_room = 0

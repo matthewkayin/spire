@@ -237,11 +237,16 @@ def game():
                             pygame.draw.rect(display, RED, (enemy_x, enemy_y, enemy.width, enemy.height), False)
                         else:
                             display.blit(enemy.get_image(), (enemy_x, enemy_y))
-                    healthbar_rect = (enemy_x - 5, enemy_y - 5, int((10 + enemy.width) * (enemy.health / enemy.max_health)), 2)
-                    pygame.draw.rect(display, RED, healthbar_rect, False)
-                    if enemy.get_plague_meter_percent() is not None:
-                        plaguebar_rect = (enemy_x - 5, enemy_y - 2, int((10 + enemy.width) * (1 - enemy.get_plague_meter_percent())), 2)
-                        pygame.draw.rect(display, YELLOW, plaguebar_rect, False)
+                    hitbox_rects = enemy.get_hurtboxes()
+                    for rect in hitbox_rects:
+                        to_draw = (rect[0][0] - player_obj.get_camera_x(), rect[0][1] - player_obj.get_camera_y(), rect[0][2], rect[0][3])
+                        pygame.draw.rect(display, RED, to_draw, False)
+                    if not enemy.is_boss:
+                        healthbar_rect = (enemy_x - 5, enemy_y - 5, int((10 + enemy.width) * (enemy.health / enemy.max_health)), 2)
+                        pygame.draw.rect(display, RED, healthbar_rect, False)
+                        if enemy.get_plague_meter_percent() is not None:
+                            plaguebar_rect = (enemy_x - 5, enemy_y - 2, int((10 + enemy.width) * (1 - enemy.get_plague_meter_percent())), 2)
+                            pygame.draw.rect(display, YELLOW, plaguebar_rect, False)
         """
         RENDER PLAYER
         """
@@ -284,6 +289,14 @@ def game():
             item_count = player_obj.inventory[player_obj.recent_item]
             count_surface = font_small.render(str(item_count), False, WHITE)
             display.blit(count_surface, (DISPLAY_WIDTH - 36 - 5 - 36 - 5 + int(36 * 0.8), 5 + int(36 * 0.8)))
+
+        # Render boss UI
+        for room in level.current_rooms:
+            for enemy in room.enemies:
+                if enemy.is_boss:
+                    healthbar_width = int(DISPLAY_WIDTH * 0.5 * (enemy.health / enemy.max_health))
+                    healthbar_rect = ((DISPLAY_WIDTH - healthbar_width) // 2, 0, healthbar_width, 20)
+                    pygame.draw.rect(display, RED, healthbar_rect, False)
 
         """
         RENDER SPELLWHEEL UI

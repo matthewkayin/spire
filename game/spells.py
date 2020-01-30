@@ -30,23 +30,16 @@ class Interaction():
     EXCLUDE_SAME_SOURCE = 1
     EXTEND_SAME_TAG = 2
 
-    def __init__(self, tag, source, duration, end_lag=0, duplicate_behavior=EXCLUDE_SAME_TAG, ignoreable=False):
+    def __init__(self, tag, source, duration, end_lag=0, duplicate_behavior=EXCLUDE_SAME_TAG):
         self.DURATION = duration
         self.END_LAG = end_lag
         self.tag = tag
         self.source = source
         self.duplicate_behavior = duplicate_behavior
-        self.ignoreable = ignoreable
 
         self.reset()
 
     def update(self, dt, target):
-        if self.ignoreable and target.ignores_some_interactions:
-            self.duration_timer = self.DURATION
-            self.end_lag_timer = self.END_LAG
-            self.ended = True
-            self.state = Interaction.ENDED
-            self.enable_effect = False
         if self.state == Interaction.INTERACTING:
             self.duration_timer += dt
             if self.duration_timer >= self.DURATION:
@@ -109,7 +102,7 @@ class Interaction_Slow(Interaction):
 
 class Interaction_Plague(Interaction):
     def __init__(self, tag, source, duration):
-        super(Interaction_Plague, self).__init__(tag, source, duration, 10, Interaction.EXCLUDE_SAME_SOURCE, True)
+        super(Interaction_Plague, self).__init__(tag, source, duration, 10, Interaction.EXCLUDE_SAME_SOURCE)
 
     def update(self, dt, target):
         if self.state == Interaction.END_LAGGING:

@@ -62,7 +62,6 @@ class Enemy(entity.Entity):
         super(Enemy, self).__init__(image, True)
         self.x, self.y = x, y
         self.check_entity_collisions = True
-        self.is_boss = False
 
         self.MOVE_SPEED = move_speed
 
@@ -75,6 +74,7 @@ class Enemy(entity.Entity):
         self.hurtbox = None
         self.POWER = 0.5
 
+        self.is_boss = False
         self.health = starting_health
         self.max_health = starting_health
         self.delete_me = False
@@ -343,7 +343,7 @@ class Enemy_Lizard(Enemy):
             self.lunging = False
             self.target_pos = None
             self.vx, self.vy = (0, 0)
-            self.randomize_angle = True
+            self.check_entity_collisions = True
 
     def get_hurtboxes(self):
         if self.lunging:
@@ -354,15 +354,190 @@ class Enemy_Lizard(Enemy):
 
 class Boss_Scorpion(Enemy):
     # State constants
-    ATTACK = 0
-    STING = 1
-    ROLLY_POLLY = 2
+    MOVE = 0
+    CLAW = 1
+    STING = 2
+    ROLLY_POLLY = 3
+    WEAK = 4
+
+    UP = 0
+    RIGHT = 1
+    DOWN = 2
+    LEFT = 3
 
     def __init__(self, x, y):
         super(Boss_Scorpion, self).__init__("scorpion", x, y, 1, 25)
+        self.is_boss = True
 
-        self.state = Boss_Scorpion.ATTACK
+        self.state = Boss_Scorpion.MOVE
+        self.timer = 0
+        self.direction = Boss_Scorpion.DOWN
+        self.target = None
+        self.source_pos = None
+
+        self.sting_number = random.randint(1, 3)
+        # self.sting_number = 0
+        self.sting_counter = 0
+
+        self.CLAW_DURATION = 70
+        self.CLAW_ONE_START = 10
+        self.CLAW_TWO_START = 40
+        self.CLAW_SWIPE_DURATION = 20
+        self.CLAW_DAMAGE = 0.5
+
+        self.STING_DURATION = 60 * 2
+        self.STING_START = 20
+        self.STING_SWIPE_DURATION = 20
+        self.STING_DAMAGE = 1
+
+        self.ROLLY_DAMAGE = 1
+        self.ROLLY_SPEED = 4
+        self.ROLLY_DELAY = 10
+
+        self.WEAK_DURATION = 60 * 5
 
     def do_ai(self, dt, player_rect):
-        if self.deal_damage:
-            self.deal_damage = False
+        if self.state == Boss_Scorpion.MOVE:
+            met_target = False
+
+            if self.target is not None:
+                distance_vector = (self.target[0] - self.x, self.target[1] - self.y)
+                if abs(distance_vector[0]) <= self.MOVE_SPEED * 2:
+                    distance_vector = (0, distance_vector[1])
+                if abs(distance_vector[1]) <= self.MOVE_SPEED * 2:
+                    distance_vector = (distance_vector[0], 0)
+                self.vx, self.vy = util.scale_vector(distance_vector, self.MOVE_SPEED)
+                if (self.vx, self.vy) == (0, 0):
+                    met_target = True
+            else:
+                self.vx, self.vy = (0, 0)
+
+            if met_target:
+                if self.sting_number != self.sting_counter:
+                    self.timer = 0
+                    self.state = Boss_Scorpion.CLAW
+                    self.target = None
+                    self.hurtboxes = []
+                    if self.direction == Boss_Scorpion.DOWN:
+                        self.hurtboxes.append((self.x, self.y + self.height, self.width // 2, 10))
+                        self.hurtboxes.append((self.x + (self.width // 2), self.y + self.height, self.width // 2, 10))
+                    elif self.direction == Boss_Scorpion.UP:
+                        self.hurtboxes.append((self.x, self.y - 10, self.width // 2, 10))
+                        self.hurtboxes.append((self.x + (self.width // 2), self.y - 10, self.width // 2, 10))
+                    elif self.direction == Boss_Scorpion.RIGHT:
+                        self.hurtboxes.append((self.x + self.width, self.y, 10, self.height // 2))
+                        self.hurtboxes.append((self.x + self.width, self.y + (self.height // 2), 10, self.height // 2))
+                    elif self.direction == Boss_Scorpion.LEFT:
+                        self.hurtboxes.append((self.x - 10, self.y, 10, self.height // 2))
+                        self.hurtboxes.append((self.x - 10, self.y + (self.height // 2), 10, self.height // 2))
+                else:
+                    self.timer = 0
+                    self.state = Boss_Scorpion.STING
+                    self.sting_counter = 0
+                    self.sting_number = random.randint(1, 3)
+                    self.target = None
+                    self.hurtboxes = []
+                    if self.direction == Boss_Scorpion.DOWN:
+                        self.hurtboxes.append((self.x, self.y + self.height, self.width, 10))
+                    elif self.direction == Boss_Scorpion.UP:
+                        self.hurtboxes.append((self.x, self.y - 10, self.width, 10))
+                    elif self.direction == Boss_Scorpion.RIGHT:
+                        self.hurtboxes.append((self.x + self.width, self.y, 10, self.height))
+                    elif self.direction == Boss_Scorpion.LEFT:
+                        self.hurtboxes.append((self.x - 10, self.y, 10, self.height))
+                self.sting_counter += 1
+            else:
+                player_center = util.get_center(player_rect)
+                self_center = self.get_center()
+                x_dist = player_center[0] - self_center[0]
+                y_dist = player_center[1] - self_center[1]
+
+                if abs(y_dist) >= abs(x_dist):
+                    if y_dist > 0:
+                        self.direction = Boss_Scorpion.DOWN
+                        self.target = (player_center[0] - (self.width // 2), player_rect[1] - self.height)
+                    else:
+                        self.direction = Boss_Scorpion.UP
+                        self.target = (player_center[0] - (self.width // 2), player_rect[1] + player_rect[3])
+                else:
+                    if x_dist > 0:
+                        self.direction = Boss_Scorpion.RIGHT
+                        self.target = (player_rect[0] - self.width, player_center[1] - (self.height // 2))
+                    else:
+                        self.direction = Boss_Scorpion.LEFT
+                        self.target = (player_rect[0] + player_rect[2], player_center[1] - (self.height // 2))
+        elif self.state == Boss_Scorpion.CLAW:
+            self.timer += dt
+            if self.timer >= self.CLAW_DURATION:
+                self.timer = 0
+                self.state = Boss_Scorpion.MOVE
+        elif self.state == Boss_Scorpion.STING:
+            self.timer += dt
+            if self.timer >= self.STING_START and self.timer <= self.STING_START + self.STING_SWIPE_DURATION:
+                if util.rects_collide(self.hurtboxes[0], player_rect):
+                    self.timer = 0
+                    self.source_pos = self.get_center()
+                    self.state = Boss_Scorpion.MOVE
+            if self.timer >= self.STING_DURATION:
+                self.timer = 0
+                self.state = Boss_Scorpion.ROLLY_POLLY
+        elif self.state == Boss_Scorpion.ROLLY_POLLY:
+            if self.timer < self.ROLLY_DELAY:
+                self.timer += dt
+                if self.timer >= self.ROLLY_DELAY:
+                    self.source_pos = self.get_center()
+                    if self.direction == Boss_Scorpion.DOWN:
+                        self.vx, self.vy = (0, self.ROLLY_SPEED)
+                    elif self.direction == Boss_Scorpion.UP:
+                        self.vx, self.vy = (0, -self.ROLLY_SPEED)
+                    elif self.direction == Boss_Scorpion.RIGHT:
+                        self.vx, self.vy = (self.ROLLY_SPEED, 0)
+                    elif self.direction == Boss_Scorpion.LEFT:
+                        self.vx, self.vy = (-self.ROLLY_SPEED, 0)
+                    self.check_entity_collisions = False
+                    self.image = "scorpion-ball"
+                    self.update_rect()
+        elif self.state == Boss_Scorpion.WEAK:
+            self.timer += dt
+            if self.timer >= self.WEAK_DURATION:
+                self.timer = 0
+                self.state = Boss_Scorpion.MOVE
+
+    def check_collision(self, dt, collider):
+        collided = super(Boss_Scorpion, self).check_collision(dt, collider)
+        if collided and self.state == Boss_Scorpion.ROLLY_POLLY:
+            self.state = Boss_Scorpion.WEAK
+            self.vx, self.vy = (0, 0)
+            self.check_entity_collisions = True
+            self.timer = 0
+            self.image = "scorpion"
+            self.update_rect()
+
+            if self.direction == Boss_Scorpion.DOWN:
+                self.y = collider[1] - self.height - 1
+            elif self.direction == Boss_Scorpion.UP:
+                self.y = collider[1] + collider[3] + 1
+            elif self.direction == Boss_Scorpion.RIGHT:
+                self.x = collider[0] - self.width - 1
+            elif self.direction == Boss_Scorpion.LEFT:
+                self.x = collider[0] + collider[2] + 1
+
+    def get_hurtboxes(self):
+        if self.state == Boss_Scorpion.CLAW:
+            if self.timer >= self.CLAW_ONE_START and self.timer <= self.CLAW_ONE_START + self.CLAW_SWIPE_DURATION:
+                return [(self.hurtboxes[0], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[0], Interaction_Impulse(util.get_center(self.hurtboxes[0])))]
+            elif self.timer >= self.CLAW_TWO_START and self.timer <= self.CLAW_TWO_START + self.CLAW_SWIPE_DURATION:
+                return [(self.hurtboxes[1], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[1], Interaction_Impulse(util.get_center(self.hurtboxes[1])))]
+        elif self.state == Boss_Scorpion.STING:
+            if self.timer >= self.STING_START and self.timer <= self.STING_START + self.STING_SWIPE_DURATION:
+                return [(self.hurtboxes[0], Interaction_Damage(self.STING_DAMAGE)), (self.hurtboxes[0], Interaction_Impulse(util.get_center(self.hurtboxes[0])))]
+        elif self.state == Boss_Scorpion.ROLLY_POLLY:
+            return [(self.get_rect(), Interaction_Damage(self.ROLLY_DAMAGE)), (self.get_rect(), Interaction_Impulse(self.source_pos, 2, 90))]
+        return []
+
+    def add_interaction(self, interaction):
+        if self.state != Boss_Scorpion.WEAK:
+            return
+        if isinstance(interaction, spells.Interaction_Plague):
+            return
+        super(Boss_Scorpion, self).add_interaction(interaction)
