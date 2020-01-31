@@ -6,7 +6,7 @@ class Map():
         self.current_rooms = []
         self.rooms = []
         self.rooms.append(Room(0, 0, 14, 14, []))
-        self.rooms[0].enemies.append(enemies.Boss_Scorpion(70, 70))
+        # self.rooms[0].enemies.append(enemies.Boss_Scorpion(70, 70))
         self.rooms[0].enemies.append(enemies.Enemy_Zombie(200, 200))
         # self.rooms[0].chests.append([(200, 200, 40, 25), False, (("spellbook-fire", 3), ("spellbook-golem", 3), ("potion", 2))])
         self.current_room = 0
@@ -23,10 +23,10 @@ class Map():
             if player.collides(self.rooms[i].get_rect()):
                 self.current_rooms.append(self.rooms[i])
 
-    def rect_in_map(self, rect):
+    def valid_entity_rect(self, rect):
         in_map = False
-        for room in self.rooms:
-            in_map = in_map or room.rect_in_room(rect)
+        for room in self.current_rooms:
+            in_map = in_map or room.valid_entity_rect(rect)
             if in_map:
                 break
 
@@ -67,7 +67,7 @@ class Room():
     def get_rect(self):
         return (self.base_x, self.base_y, self.width, self.height)
 
-    def rect_in_room(self, rect):
+    def valid_entity_rect(self, rect):
         room_rect = self.get_rect()
         if rect[0] >= room_rect[0] and rect[0] + rect[2] < room_rect[0] + room_rect[2] and rect[1] >= room_rect[1] and rect[1] + rect[3] < room_rect[1] + room_rect[3]:
             for collider in self.colliders:
@@ -76,6 +76,9 @@ class Room():
             return True
         else:
             return False
+
+    def rect_in_room(self, rect):
+        return util.rects_collide(rect, self.get_rect())
 
     def generate_room(self, width, height, doors):
         self.width = width * 50

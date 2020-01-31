@@ -99,7 +99,7 @@ def game():
         if player_obj.ui_substate == player_obj.AIM_SPELL:
             if player_obj.pending_spell.NEEDS_ROOM_AIM:
                 pending_spell_rect = (player_obj.mouse_x + player_obj.get_camera_x(), player_obj.mouse_y + player_obj.get_camera_y(), player_obj.pending_spell.width, player_obj.pending_spell.height)
-                player_obj.has_room_aim = level.rect_in_map(pending_spell_rect)
+                player_obj.has_room_aim = level.valid_entity_rect(pending_spell_rect)
         for spell in player_obj.active_spells:
             if not level.rect_in_current_rooms(spell.get_rect()):
                 spell.end_spell()

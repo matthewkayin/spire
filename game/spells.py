@@ -80,8 +80,7 @@ class Interaction_Stun(Interaction):
         if self.enable_effect:
             target.vx, target.vy = (0, 0)
             target.image_append = self.image_append
-            target.attacking = False
-            target.deal_damage = False
+            target.does_ai = False
 
         super(Interaction_Stun, self).update(dt, target)
 

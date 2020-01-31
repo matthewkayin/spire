@@ -75,6 +75,7 @@ class Enemy(entity.Entity):
         self.POWER = 0.5
 
         self.is_boss = False
+        self.does_ai = True
         self.health = starting_health
         self.max_health = starting_health
         self.delete_me = False
@@ -87,10 +88,12 @@ class Enemy(entity.Entity):
         if self.health <= 0:
             self.handle_death()
 
-        self.do_ai(dt, player_rect)
+        if self.does_ai:
+            self.do_ai(dt, player_rect)
 
-        # reset attack speed each update so that when interactions fizzle out attack speed returns to normal
+        # reset interaction variables that modify behavior
         self.attack_speed_percent = 1
+        self.does_ai
 
         self.image_append = ""
         for interaction in self.interactions:
@@ -153,6 +156,7 @@ class Enemy_Zombie(Enemy):
 
         self.FOLLOW_RANGE = 600
         self.ATTACK_SPEED = 10
+        self.ATTACK_RANGE = 1
 
     def do_ai(self, dt, player_rect):
         # If we finished an attack last turn, we want to reset these variables so the hit happens only once
@@ -169,7 +173,8 @@ class Enemy_Zombie(Enemy):
             player_center = util.get_center(player_rect)
             self_center = self.get_center()
             player_distance = util.get_distance(self_center, player_center)
-            if self.collides(player_rect):
+            hit_rect = (player_rect[0] - self.ATTACK_RANGE, player_rect[1] - self.ATTACK_RANGE, player_rect[2] + (2 * self.ATTACK_RANGE), player_rect[3] + (2 * self.ATTACK_RANGE))
+            if self.collides(hit_rect):
                 # begin an attack windup
                 self.attacking = True
                 self.hurtbox = player_rect
@@ -525,9 +530,9 @@ class Boss_Scorpion(Enemy):
     def get_hurtboxes(self):
         if self.state == Boss_Scorpion.CLAW:
             if self.timer >= self.CLAW_ONE_START and self.timer <= self.CLAW_ONE_START + self.CLAW_SWIPE_DURATION:
-                return [(self.hurtboxes[0], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[0], Interaction_Impulse(util.get_center(self.hurtboxes[0])))]
+                return [(self.hurtboxes[0], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[0], Interaction_Impulse(self.get_center()))]
             elif self.timer >= self.CLAW_TWO_START and self.timer <= self.CLAW_TWO_START + self.CLAW_SWIPE_DURATION:
-                return [(self.hurtboxes[1], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[1], Interaction_Impulse(util.get_center(self.hurtboxes[1])))]
+                return [(self.hurtboxes[1], Interaction_Damage(self.CLAW_DAMAGE)), (self.hurtboxes[1], Interaction_Impulse(self.get_center()))]
         elif self.state == Boss_Scorpion.STING:
             if self.timer >= self.STING_START and self.timer <= self.STING_START + self.STING_SWIPE_DURATION:
                 return [(self.hurtboxes[0], Interaction_Damage(self.STING_DAMAGE)), (self.hurtboxes[0], Interaction_Impulse(util.get_center(self.hurtboxes[0])))]
